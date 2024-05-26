@@ -26,13 +26,13 @@ You can also activate the alternative search mode, then search through process a
 - <b>`D`, `U`, `C`, `K`, `ENTER`</b> => Filters to `duck` windows (i.e. any browser window with focused DuckDuckGo tab) then switches to first one after `ENTER`. ⚠️ This example assumes the DuckDuckGo tab is focused in the browser (TaskSpace currently doesn't support searching across unfocused browser tabs).
 
 ## 📸 Screenshots
-<img src="TaskSpaceScreenshot.png" alt="Screenshot of TaskSpace in action" width="1280px" height="900px" />
+<img src="TaskSpaceScreenshot.png" alt="Screenshot of TaskSpace in action" width="100%" />
 
 ## 🎞️ GIFs
 - Fast demo:
-<img src="TaskSpaceDemo_Fast.gif" alt="GIF of TaskSpace in action (fast)" width="1280px" height="900px" />
+<img src="TaskSpaceDemo_Fast.gif" alt="GIF of TaskSpace in action (fast)" width="100%" />
 - Slow demo:
-<img src="TaskSpaceDemo_Slow.gif" alt="GIF of TaskSpace in action (slow)" width="1280px" height="900px" />
+<img src="TaskSpaceDemo_Slow.gif" alt="GIF of TaskSpace in action (slow)" width="100%" />
 
 ## 🖥️ Tray Icon
 Change the launch hotkeys and more via the tray app icon <img src="TaskSpaceLogo.png" alt="Screenshot of TaskSpace in action" width="16px" height="16px" />.
