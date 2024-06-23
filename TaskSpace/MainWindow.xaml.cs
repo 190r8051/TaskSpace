@@ -31,17 +31,25 @@ using MessageBox = System.Windows.MessageBox;
 
 namespace TaskSpace {
     public partial class MainWindow : System.Windows.Window {
-        // [todo]<Move.>
+        #region Enums
         private enum InitialFocus {
-            NextItem,
             PreviousItem
+            , CurrentItem
+            , NextItem
         }
+        #endregion Enums
 
         #region Const
+        //public const int SHOW_TIMEOUT_MS = 200;
         public const int SHOW_TIMEOUT_MS = 900;
 
         public static TimeSpan SHOW_TIMEOUT = TimeSpan.FromMilliseconds(SHOW_TIMEOUT_MS);
         #endregion Const
+
+        #region Externs
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern bool AllocConsole();
+        #endregion Externs
 
         #region Properties
         public Dictionary<char, List<string>> CharToAppList { get; private set; } = new Dictionary<char, List<string>>();
@@ -74,8 +82,8 @@ namespace TaskSpace {
         private WindowCloser _windowCloser;
         private ObservableCollection<AppWindowViewModel> _filteredWindowList;
         private NotifyIcon _notifyIcon;
-        private HotKey _hotkey;
-        private HotKey _hotkey2;
+        private HotKey _hotkeyMain; // Main hotkey. ALT+Space default.
+        private HotKey _hotkeyAlt; // Alternate hotkey. ALT+` default.
 
         public static readonly RoutedUICommand CloseWindowCommand = new RoutedUICommand();
         public static readonly RoutedUICommand SwitchToWindowCommand = new RoutedUICommand();
@@ -89,13 +97,18 @@ namespace TaskSpace {
         private AltTabHook _altTabHook;
         private SystemWindow _foregroundWindow;
         //private bool _altTabAutoSwitch; // [todo] What does this do? Maybe something where the search box is focused? Or maybe something with quick single button hits? Or takes-over ALT+Tab? Or does ALT+Tab immediate switch, but using ALT+Space?
-        private bool _sorted = false; // [todo] Original, or new code?
+        //private bool _isSorted = false;
 
         private Theme _theme;
         #endregion Properties
 
         #region Constructor
         public MainWindow() {
+#if DEBUG
+            // Allocate console for Console.WriteLine calls.
+            //AllocConsole();
+#endif
+
             InitializeComponent();
 
             SetUpKeyBindings();
@@ -169,18 +182,31 @@ namespace TaskSpace {
             // [warning] DON'T use variables from outer scope (unless global).
             KeyUp += (sender, args) => {
                 // ... But only when the keys are released, the action is actually executed.
-                if(args.Key == Key.Space
-                ) {
+                if(args.Key == Key.Space) {
+#if DEBUG
+                    //Console.WriteLine($"DEBUG :: Space detected.");
+#endif
                     if(Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) {
                         // [nop] This is likely the current main-window launch.
+#if DEBUG
+                        // #todo Never hit?
+                        //Console.WriteLine($"DEBUG :: NOP :: ALT+Space detected.");
+#endif
                     }
                     else if(_isMainWindowActive) {
                         TimeSpan? diff = DateTime.UtcNow - _mainWindowActiveDateTime;
                         if(diff < SHOW_TIMEOUT) {
                             // [nop] This is likely the current main-window launch (even though ALT is not detected).
+#if DEBUG
+                            Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
+#endif
                         }
                         else {
-                            ToggleSearch(true);
+#if DEBUG
+                            Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
+#endif
+                            // #todo Check flags like Control etc.
+                            Switch(); // Switch to currently selected app (i.e. treat Space as Enter).
                         }
                     }
                 }
@@ -247,18 +273,18 @@ namespace TaskSpace {
         }
 
         private void SetUpHotKeys() {
-            _hotkey = new HotKey();
-            _hotkey.LoadSettings();
+            _hotkeyMain = new HotKey();
+            _hotkeyMain.LoadSettings();
 
-            _hotkey2 = new HotKey();
-            _hotkey2.LoadSettings2();
+            _hotkeyAlt = new HotKey();
+            _hotkeyAlt.LoadSettings2();
 
-            Application.Current.Properties["hotkey"] = _hotkey;
-            Application.Current.Properties["hotkey2"] = _hotkey2;
+            Application.Current.Properties["hotkeyMain"] = _hotkeyMain;
+            Application.Current.Properties["hotkeyAlt"] = _hotkeyAlt;
 
-            _hotkey.HotkeyPressed += hotkey_HotkeyPressed; // ALT+Space default.
+            _hotkeyMain.HotkeyPressed += hotkeyMain_HotkeyPressed; // ALT+Space default.
             try {
-                _hotkey.Enabled = Settings.Default.EnableHotKey;
+                _hotkeyMain.Enabled = Settings.Default.EnableHotKey;
             }
             catch(HotkeyAlreadyInUseException) {
                 string boxText = "The current hotkey for activating TaskSpace is in use by another program."
@@ -268,9 +294,9 @@ namespace TaskSpace {
                 MessageBox.Show(boxText, "Hotkey already in use", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 
-            _hotkey2.HotkeyPressed += hotkey2_HotkeyPressed; // ALT+` default.
+            _hotkeyAlt.HotkeyPressed += hotkeyAlt_HotkeyPressed; // ALT+` default.
             try {
-                _hotkey2.Enabled = Settings.Default.EnableHotKey2;
+                _hotkeyAlt.Enabled = Settings.Default.EnableHotKey2;
             }
             catch(HotkeyAlreadyInUseException) {
                 string boxText = "The current hotkey2 for activating TaskSpace is in use by another program."
@@ -331,7 +357,12 @@ namespace TaskSpace {
         /// <summary>
         /// Populates the window list with the current running windows.
         /// </summary>
-        private void LoadData(InitialFocus focus, bool isSingleAppModeEnabled = false) {
+        /// <param name="focus">The focus value, i.e. Previous/Current/Next.</param>
+        /// <param name="isSingleAppModeEnabled">[opt; default is false] Activates the single-app-mode, i.e. the UI is filtered to a single (current) app instances.</param>
+        private void LoadData(
+            InitialFocus focus
+            , bool isSingleAppModeEnabled = false
+        ) {
             // Restore searchbox defaults.
             TextBoxSearch.Background = _theme.Background;
             SearchIcon.Opacity = 0.4;
@@ -454,6 +485,9 @@ namespace TaskSpace {
                 ListBoxPrograms.SelectedIndex = 0 < previousItemIndex
                     ? previousItemIndex
                     : 0;
+            }
+            else if(focus == InitialFocus.CurrentItem) {
+                // [nop] Keeping the current item index.
             }
             else if(focus == InitialFocus.NextItem) { // [redundant]
                 // [todo]!!! Add to visual settings with description.
@@ -715,7 +749,7 @@ namespace TaskSpace {
         private void Quit() {
             _notifyIcon.Dispose();
             _notifyIcon = null;
-            _hotkey.Dispose();
+            _hotkeyMain.Dispose();
             Application.Current.Shutdown();
         }
         #endregion Right-Click Menu Functions
@@ -726,17 +760,19 @@ namespace TaskSpace {
             HideWindow();
         }
 
-        // ALT+Space default (or another hotkey) pressed.
-        private void hotkey_HotkeyPressed(object sender, EventArgs e) {
+        // The main hotkey pressed, e.g. ALT+Space.
+        private void hotkeyMain_HotkeyPressed(object sender, EventArgs e) {
+#if DEBUG
+            Console.WriteLine($"TRACE :: {nameof(hotkeyMain_HotkeyPressed)}...");
+#endif
             if(!Settings.Default.EnableHotKey) {
                 return;
             }
 
-            if(Visibility == Visibility.Visible) {
-                HideWindow();
-                _mainWindowActiveDateTime = DateTime.MinValue;
-            }
-            else {
+            if(Visibility != Visibility.Visible) {
+#if DEBUG
+                Console.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Not visible => Show...");
+#endif
                 _foregroundWindow = SystemWindow.ForegroundWindow;
                 Show();
                 Activate();
@@ -746,19 +782,33 @@ namespace TaskSpace {
                 LoadData(InitialFocus.NextItem);
                 Opacity = 1;
             }
+            else {
+#if DEBUG
+                Console.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Visible and hotkey pressed again => Search...");
+#endif
+
+                _foregroundWindow = SystemWindow.ForegroundWindow;
+                Show();
+                Activate();
+                LoadData(InitialFocus.CurrentItem);
+                Opacity = 1;
+                ToggleSearch(true);
+            }
         }
 
-        // ALT+` (or another hotkey) pressed.
-        private void hotkey2_HotkeyPressed(object sender, EventArgs e) {
+        // The alternate hotkey pressed, e.g. ALT+`.
+        private void hotkeyAlt_HotkeyPressed(object sender, EventArgs e) {
+#if DEBUG
+            Console.WriteLine($"TRACE :: {nameof(hotkeyAlt_HotkeyPressed)}...");
+#endif
             if(!Settings.Default.EnableHotKey2) {
                 return;
             }
 
-            if(Visibility == Visibility.Visible) {
-                HideWindow();
-                _mainWindowActiveDateTime = DateTime.MinValue;
-            }
-            else {
+            if(Visibility != Visibility.Visible) {
+#if DEBUG
+                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: Not visible => Show...");
+#endif
                 _foregroundWindow = SystemWindow.ForegroundWindow;
                 Show();
                 Activate();
@@ -767,6 +817,15 @@ namespace TaskSpace {
                 // [!]
                 LoadData(InitialFocus.NextItem, isSingleAppModeEnabled: true);
                 Opacity = 1;
+            }
+            else {
+#if DEBUG
+                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: [nop]?...");
+#endif
+
+                // #old
+                //HideWindow();
+                //_mainWindowActiveDateTime = DateTime.MinValue;
             }
         }
 
@@ -996,7 +1055,7 @@ namespace TaskSpace {
 
         private void MainWindow_OnLostFocus(object sender, EventArgs e) {
             // [bug]!!! Why is this hitting with the new changes?
-            HideWindow();
+            //HideWindow();
         }
 
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e) {

@@ -4,6 +4,9 @@
 TaskSpace is for anyone who spends more time using a keyboard than a mouse. Instead of alt-tabbing through a (long) list of open windows, TaskSpace allows you to quickly switch to any open window via a few key presses.
 
 ## ⌨️ Hotkeys / Shortcuts
+### ⇄ Toggle Mode
+- <b>`ALT`+`Space`</b>, <b>`Space`</b> => Pops-up TaskSpace, then after <b>`Space`</b> (without ALT held), toggles to next most recent window. Can be used for toggling between two most recent windows.
+
 ### 🧠 Mnemonic Mode
 Switch to mapped apps with three key presses: start with <b>`ALT`+`Space`</b> then press a letter key mapped to a particular app.
 - <b>`ALT`+`Space`</b> => Pops-up TaskSpace, awaiting the next user key press, e.g. `E`, `F`, `W`, `X`, etc.
@@ -21,7 +24,7 @@ Switch to almost any open window with three key presses: start with <b>`ALT`+`Sp
 
 ### 🔍 Search Mode
 You can also activate the alternative search mode, then search through process and/or window names:
-- <b>`ALT+Space`, `Space`</b> => Pops-up TaskSpace in search mode, awaiting the multikey search term.
+- <b>`ALT+Space`, `ALT+Space`</b> => Pops-up TaskSpace in search mode, awaiting the multikey search term.
 - <b>`E`, `D`, `G`, `E`, `ENTER`</b> => Filters to `edge` windows (i.e. any "msedge" process) then switches to first one after `ENTER`.
 - <b>`D`, `U`, `C`, `K`, `ENTER`</b> => Filters to `duck` windows (i.e. any browser window with focused DuckDuckGo tab) then switches to first one after `ENTER`. ⚠️ This example assumes the DuckDuckGo tab is focused in the browser (TaskSpace currently doesn't support searching across unfocused browser tabs).
 
