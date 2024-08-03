@@ -446,9 +446,12 @@ namespace TaskSpace.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsd=\"http://www.w3." +
-            "org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n  <s" +
-            "tring>fontlab 8.exe</string>\r\n  <string>fontlab.exe</string>\r\n</ArrayOfString>")]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+  <string>fontlab 8.exe</string>
+  <string>fontlab.exe</string>
+  <string>locknote.exe</string>
+</ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection Apps_L {
             get {
                 return ((global::System.Collections.Specialized.StringCollection)(this["Apps_L"]));
