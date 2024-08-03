@@ -171,6 +171,7 @@
 &lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
   &lt;string&gt;fontlab 8.exe&lt;/string&gt;
   &lt;string&gt;fontlab.exe&lt;/string&gt;
+  &lt;string&gt;locknote.exe&lt;/string&gt;
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="Apps_M" Type="System.Collections.Specialized.StringCollection" Scope="User">

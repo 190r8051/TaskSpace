@@ -40,8 +40,19 @@ namespace TaskSpace {
         #endregion Enums
 
         #region Const
+        /// <summary>
+        /// If set to true, ALT+Space,ALT+Space (without releasing ALT) acts like ALT+Tab.
+        /// </summary>
+        public const bool IS_ALT_SPACE_ALT_SPACE_ENABLED = true;
+
+        /// <summary>
+        /// If set to true, ALT+Space,Space (with releasing ALT) acts like ALT+Tab.
+        /// </summary>
+        public const bool IS_ALT_SPACE_SPACE_ENABLED = true;
+
         //public const int SHOW_TIMEOUT_MS = 200;
-        public const int SHOW_TIMEOUT_MS = 900;
+        public const int SHOW_TIMEOUT_MS = 500;
+        //public const int SHOW_TIMEOUT_MS = 900;
 
         public static TimeSpan SHOW_TIMEOUT = TimeSpan.FromMilliseconds(SHOW_TIMEOUT_MS);
         #endregion Const
@@ -186,28 +197,55 @@ namespace TaskSpace {
 #if DEBUG
                     //Console.WriteLine($"DEBUG :: Space detected.");
 #endif
+
+                    bool shouldSwitch = false;
                     if(Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) {
-                        // [nop] This is likely the current main-window launch.
+                        // #nop This is likely the current main-window launch.
 #if DEBUG
                         // #todo Never hit?
-                        //Console.WriteLine($"DEBUG :: NOP :: ALT+Space detected.");
+                        Console.WriteLine($"DEBUG :: NOP :: ALT+Space detected.");
 #endif
+
+                        if(IS_ALT_SPACE_ALT_SPACE_ENABLED) {
+                            TimeSpan? timeSpanDiff = DateTime.UtcNow - _mainWindowActiveDateTime;
+                            if(timeSpanDiff < SHOW_TIMEOUT) {
+                                // #nop This is likely the current main-window launch (even though ALT is not detected).
+#if DEBUG
+                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
+#endif
+                            }
+                            else {
+#if DEBUG
+                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
+#endif
+
+                                // #todo Check flags like Control etc.
+                                shouldSwitch = true;
+                            }
+                        }
                     }
                     else if(_isMainWindowActive) {
-                        TimeSpan? diff = DateTime.UtcNow - _mainWindowActiveDateTime;
-                        if(diff < SHOW_TIMEOUT) {
-                            // [nop] This is likely the current main-window launch (even though ALT is not detected).
+                        if(!IS_ALT_SPACE_ALT_SPACE_ENABLED || IS_ALT_SPACE_SPACE_ENABLED) {
+                            TimeSpan? timeSpanDiff = DateTime.UtcNow - _mainWindowActiveDateTime;
+                            if(timeSpanDiff < SHOW_TIMEOUT) {
+                                // #nop This is likely the current main-window launch (even though ALT is not detected).
 #if DEBUG
-                            Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
+                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
 #endif
-                        }
-                        else {
+                            }
+                            else {
 #if DEBUG
-                            Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
+                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
 #endif
-                            // #todo Check flags like Control etc.
-                            Switch(); // Switch to currently selected app (i.e. treat Space as Enter).
+
+                                // #todo Check flags like Control etc.
+                                shouldSwitch = true;
+                            }
                         }
+                    }
+
+                    if(shouldSwitch) {
+                        Switch(); // Switch to currently selected app (i.e. treat Space as Enter).
                     }
                 }
                 else if(args.Key == Key.Back) {
@@ -487,7 +525,7 @@ namespace TaskSpace {
                     : 0;
             }
             else if(focus == InitialFocus.CurrentItem) {
-                // [nop] Keeping the current item index.
+                // #nop Keeping the current item index.
             }
             else if(focus == InitialFocus.NextItem) { // [redundant]
                 // [todo]!!! Add to visual settings with description.
@@ -634,7 +672,7 @@ namespace TaskSpace {
         ) {
             if(appWindowViewModels != null) {
                 if(appWindowViewModels.Count == 0) {
-                    // [nop]
+                    // #nop
                 }
                 else if(appWindowViewModels.Count == 1) {
                     AppWindowViewModel appWindowViewModel = appWindowViewModels.First();
@@ -787,12 +825,17 @@ namespace TaskSpace {
                 Console.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Visible and hotkey pressed again => Search...");
 #endif
 
-                _foregroundWindow = SystemWindow.ForegroundWindow;
-                Show();
-                Activate();
-                LoadData(InitialFocus.CurrentItem);
-                Opacity = 1;
-                ToggleSearch(true);
+                if(IS_ALT_SPACE_ALT_SPACE_ENABLED) {
+                    Switch();
+                }
+                else {
+                    _foregroundWindow = SystemWindow.ForegroundWindow;
+                    Show();
+                    Activate();
+                    LoadData(InitialFocus.CurrentItem);
+                    Opacity = 1;
+                    ToggleSearch(true);
+                }
             }
         }
 
@@ -820,7 +863,7 @@ namespace TaskSpace {
             }
             else {
 #if DEBUG
-                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: [nop]?...");
+                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: #nop?...");
 #endif
 
                 // #old
