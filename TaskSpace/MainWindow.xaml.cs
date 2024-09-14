@@ -25,8 +25,8 @@ using TaskSpace.Core.Matchers;
 using TaskSpace.Properties;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Application = System.Windows.Application;
-using MenuItem = System.Windows.Forms.ToolStripMenuItem; // [note] MenuItem is no longer supported. Use ToolStripMenuItem instead. For more details see "https://docs.microsoft.com/en-us/dotnet/core/compatibility/winforms#removed-controls".
-//using MenuItem = System.Windows.Forms.MenuItem; // [warning] .NET Framework 4.8- only.
+using MenuItem = System.Windows.Forms.ToolStripMenuItem; // #note MenuItem is no longer supported. Use ToolStripMenuItem instead. For more details see "https://docs.microsoft.com/en-us/dotnet/core/compatibility/winforms#removed-controls".
+//using MenuItem = System.Windows.Forms.MenuItem; // #warning .NET Framework 4.8- only.
 using MessageBox = System.Windows.MessageBox;
 
 namespace TaskSpace {
@@ -81,13 +81,13 @@ namespace TaskSpace {
         /// </summary>
         private bool _isSearchEnabled = false;
 
-        //private int? _lastSelectedIndex = null; // [cut]
+        //private int? _lastSelectedIndex = null; // #cut
 
         private string _launchCommand = string.Empty;
 
         private List<List<string>> _folderFiles = new List<List<string>>();
 
-        private List<AppWindowViewModel> _targetWindowList = null; // [note] These are the windows returned by indexing of alphabetic targeting.
+        private List<AppWindowViewModel> _targetWindowList = null; // #note These are the windows returned by indexing of alphabetic targeting.
         private List<AppWindowViewModel> _unfilteredWindowList;
 
         private WindowCloser _windowCloser;
@@ -107,7 +107,7 @@ namespace TaskSpace {
         private AboutWindow _aboutWindow;
         private AltTabHook _altTabHook;
         private SystemWindow _foregroundWindow;
-        //private bool _altTabAutoSwitch; // [todo] What does this do? Maybe something where the search box is focused? Or maybe something with quick single button hits? Or takes-over ALT+Tab? Or does ALT+Tab immediate switch, but using ALT+Space?
+        //private bool _altTabAutoSwitch; // #todo What does this do? Maybe something where the search box is focused? Or maybe something with quick single button hits? Or takes-over ALT+Tab? Or does ALT+Tab immediate switch, but using ALT+Space?
         //private bool _isSorted = false;
 
         private Theme _theme;
@@ -130,7 +130,7 @@ namespace TaskSpace {
 
             SetUpAltTabHook();
 
-            //CheckForUpdates(); // [cut]
+            //CheckForUpdates(); // #cut
 
             _theme = new Theme(this);
 
@@ -139,7 +139,7 @@ namespace TaskSpace {
         #endregion Constructor
 
         #region Private Methods
-        // [todo]!!! Could add the main task launching here, e.g. check "1", "V", etc.
+        // #todo!!! Could add the main task launching here, e.g. check "1", "V", etc.
         // If "_" is hit, then switch to the search mode (but could backspace back to the main mode).
         private void SetUpKeyBindings() {
             string letter = string.Empty;
@@ -154,7 +154,7 @@ namespace TaskSpace {
                 else if(args.Key == Key.Escape) {
                     Opacity = 0;
                 }
-                // [note] Switcheroo doesn't have this.
+                // #note Switcheroo doesn't have this.
                 //else if(args.SystemKey == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) {
                 //    _altTabAutoSwitch = false;
                 //    tb.Text = "";
@@ -162,15 +162,15 @@ namespace TaskSpace {
                 //    tb.Focus();
                 //}
                 else if(!_isSearchEnabled) {
-                    // [todo] But what if the app is not mapped?
-                    // Eg hit 9, but there are no 9 apps? Or hit V, but this is not mapped directly to anything?
-                    // Then, automatically switch to search mode, eg type " " (to be consistent with search mode), then type 9 or V.
+                    // #todo But what if the app is not mapped?
+                    // e.g. hit 9, but there are no 9 apps? Or hit V, but this is not mapped directly to anything?
+                    // Then, automatically switch to search mode, e.g. type " " (to be consistent with search mode), then type 9 or V.
 
                     // Do determine this here (ie DON'T hide the app if the above search was actually executed).
 
-                    // [todo]!!! Should follow the same schema as below.
-                    if(args.Key == Key.OemTilde) { // [todo] Make sure that there are no modifiers?
-                        // [todo] _targetWindowList = GetPowerMenuOptions();
+                    // #todo!!! Should follow the same schema as below.
+                    if(args.Key == Key.OemTilde) { // #todo Make sure that there are no modifiers?
+                        // #todo _targetWindowList = GetPowerMenuOptions();
                         AppWindowViewModel targetWindow = GetSwitchableWindows(args.Key, out letter).FirstOrDefault();
                         if(targetWindow != null) {
                             _launchCommand = targetWindow.LaunchCommand;
@@ -181,7 +181,7 @@ namespace TaskSpace {
                         || (Key.NumPad0 <= args.Key && args.Key <= Key.NumPad9)
                         || (Key.F1 <= args.Key && args.Key <= Key.F24)
                         || (Key.A <= args.Key && args.Key <= Key.Z)
-                    ) { // [todo] Make sure that there are no modifiers?
+                    ) { // #todo Make sure that there are no modifiers?
                         _targetWindowList = GetSwitchableWindows(args.Key, out letter);
                         if(_targetWindowList != null && _targetWindowList.Count == 1) {
                             this.Opacity = 0;
@@ -190,7 +190,7 @@ namespace TaskSpace {
                 }
             };
 
-            // [warning] DON'T use variables from outer scope (unless global).
+            // #warning DON'T use variables from outer scope (unless global).
             KeyUp += (sender, args) => {
                 // ... But only when the keys are released, the action is actually executed.
                 if(args.Key == Key.Space) {
@@ -252,16 +252,16 @@ namespace TaskSpace {
                     _targetWindowList = _unfilteredWindowList;
                     Switch(_targetWindowList, letter: string.Empty);
                 }
-                // [note] This might not have all the combinations from above, eg ALT+S.
+                // #note This might not have all the combinations from above, e.g. ALT+S.
                 else if(args.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
                     Switch();
                 }
                 else if(args.Key == Key.Escape) {
                     HideWindow();
                 }
-                // [note] Switcheroo doesn't have this.
+                // #note Switcheroo doesn't have this.
                 //else if(args.SystemKey == Key.LeftAlt && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
-                //    // [bug]!!! This needs more sanity-testing: maybe this is why often the first app just switches immediately.
+                //    // #bug!!! This needs more sanity-testing: maybe this is why often the first app just switches immediately.
                 //    Switch();
                 //}
                 //else if(args.Key == Key.LeftAlt && _altTabAutoSwitch) {
@@ -353,7 +353,7 @@ namespace TaskSpace {
         private void SetUpNotifyIcon() {
             Icon icon = Properties.Resources.icon;
 
-            //MenuItem runOnStartupMenuItem = new MenuItem("Run on Startup", (s, e) => RunOnStartup(s as MenuItem)) { // [warning] .NET Framework 4.8-.
+            //MenuItem runOnStartupMenuItem = new MenuItem("Run on Startup", (s, e) => RunOnStartup(s as MenuItem)) { // #warning .NET Framework 4.8-.
             ToolStripMenuItem runOnStartupMenuItem = new ToolStripMenuItem(
                 text: "Run on Startup",
                 image: null,
@@ -366,7 +366,7 @@ namespace TaskSpace {
                 Text = "TaskSpace",
                 Icon = icon,
                 Visible = true,
-                //ContextMenu = new System.Windows.Forms.ContextMenu(new[] { // [warning] .NET Framework 4.8-.
+                //ContextMenu = new System.Windows.Forms.ContextMenu(new[] { // #warning .NET Framework 4.8-.
                 ContextMenuStrip = new System.Windows.Forms.ContextMenuStrip {
                     Items = {
                         new ToolStripMenuItem(text: "Options", image: null, (s, e) => Options()),
@@ -378,7 +378,7 @@ namespace TaskSpace {
             };
         }
 
-        //private static void RunOnStartup(MenuItem menuItem) { // [warning] .NET Framework 4.8-.
+        //private static void RunOnStartup(MenuItem menuItem) { // #warning .NET Framework 4.8-.
         private static void RunOnStartup(ToolStripMenuItem toolStripMenuItem) {
             try {
                 AutoStart autoStart = new AutoStart {
@@ -452,8 +452,8 @@ namespace TaskSpace {
                 window.IndexString = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
             }
 
-            // [todo]!!! Could be integrated into GetSwitchableWindows (ie no filtering mode).
-            bool isPowerMenuEnabled = false; // [future] Move to settings.
+            // #todo!!! Could be integrated into GetSwitchableWindows (ie no filtering mode).
+            bool isPowerMenuEnabled = false; // #future Move to settings.
             if(isPowerMenuEnabled) {
                 List<AppWindowViewModel> windows = GetPowerMenuOptions();
 
@@ -470,13 +470,13 @@ namespace TaskSpace {
             ListBoxPrograms.DataContext = null;
             ListBoxPrograms.DataContext = _filteredWindowList;
 
-            FocusItemInList(focus); //, foregroundWindowMovedToBottom); // [cut] Moving to bottom isn't intuitive.
+            FocusItemInList(focus); //, foregroundWindowMovedToBottom); // #cut Moving to bottom isn't intuitive.
 
             TextBoxSearch.Clear();
             TextBoxSearch.Focus();
             TextBoxSearch.IsReadOnly = true; // [!] Read-only true so that the caret doesn't show (yet).
 
-            // [buggy]
+            // #buggy
             if(isSingleAppModeEnabled) {
                 string letterMapped = firstWindow.LetterMapped;
                 if(!string.IsNullOrEmpty(letterMapped)) {
@@ -498,9 +498,9 @@ namespace TaskSpace {
             ScrollSelectedItemIntoView();
         }
 
-        // [experimental]
-        // [future] Should return a list. When '`' is hit, should open the folder mapped to '`' key.
-        // [future]! Read the list from settings.
+        // #experimental
+        // #future Should return a list. When '`' is hit, should open the folder mapped to '`' key.
+        // #future! Read the list from settings.
         private List<AppWindowViewModel> GetPowerMenuOptions() {
             throw new NotImplementedException();
         }
@@ -514,7 +514,7 @@ namespace TaskSpace {
         //, bool foregroundWindowMovedToBottom
         ) {
             if(focus == InitialFocus.PreviousItem) {
-                // [NOTE]!!! Properties.Settings.Default.IsFocusNextEnabled is never applicable here.
+                // #note!!! Properties.Settings.Default.IsFocusNextEnabled is never applicable here.
                 int previousItemIndex = ListBoxPrograms.Items.Count - 1;
                 //if(foregroundWindowMovedToBottom) {
                 //    --previousItemIndex;
@@ -527,8 +527,8 @@ namespace TaskSpace {
             else if(focus == InitialFocus.CurrentItem) {
                 // #nop Keeping the current item index.
             }
-            else if(focus == InitialFocus.NextItem) { // [redundant]
-                // [todo]!!! Add to visual settings with description.
+            else if(focus == InitialFocus.NextItem) { // #redundant
+                // #todo!!! Add to visual settings with description.
                 if(Properties.Settings.Default.IsFocusNextEnabled) {
                     ListBoxPrograms.SelectedIndex = 1;
                 }
@@ -564,7 +564,7 @@ namespace TaskSpace {
         ) {
             List<AppWindowViewModel> retVal = new List<AppWindowViewModel>();
 
-            // [note] ItemCollection is not queryable.
+            // #note ItemCollection is not queryable.
             foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
                 if(appWindowViewModel.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase)) {
                     retVal.Add(appWindowViewModel);
@@ -614,13 +614,13 @@ namespace TaskSpace {
                     i1 = 10;
                 }
                 else if(Key.D1 <= keyLocal && keyLocal <= Key.D9) {
-                    i1 = (int)(keyLocal - Key.D0); // Eg for Key.D1, the index is 1 (D1 value 35 minus D0 value 34).
+                    i1 = (int)(keyLocal - Key.D0); // e.g. for Key.D1, the index is 1 (D1 value 35 minus D0 value 34).
                 }
                 else if(Key.NumPad1 <= keyLocal && keyLocal <= Key.NumPad9) {
-                    i1 = (int)(keyLocal - Key.NumPad0); // Eg for Key.NumPad1, the index is 1 (NumPad1 value 75 minus NumPad0 value 74).
+                    i1 = (int)(keyLocal - Key.NumPad0); // e.g. for Key.NumPad1, the index is 1 (NumPad1 value 75 minus NumPad0 value 74).
                 }
                 else if(Key.F1 <= keyLocal && keyLocal <= Key.F24) {
-                    i1 = 11 + (int)(keyLocal - Key.F1); // Eg for Key.F1, the index is 11 (F1 value 90 minus F1 value 90 plus 11).
+                    i1 = 11 + (int)(keyLocal - Key.F1); // e.g. for Key.F1, the index is 11 (F1 value 90 minus F1 value 90 plus 11).
                 }
 
                 int? i0 = !i1.HasValue ? (int?)null : i1.Value - 1;
@@ -632,7 +632,7 @@ namespace TaskSpace {
                 // Calculate the letter based on the offset from Key.A.
                 letter = ((char)((int)keyLocal - (int)Key.A + 'A')).ToString();
 
-                // [todo] Get the apps from settings.
+                // #todo Get the apps from settings.
 
                 //if(key == Key.A) {
                 //    appsList = Properties.Settings.Default.Apps_A.Cast<string>().ToList();
@@ -641,7 +641,7 @@ namespace TaskSpace {
                 //    appsList = Properties.Settings.Default.Apps_E.Cast<string>().ToList();
                 //}
 
-                // [note] ItemCollection is not queryable.
+                // #note ItemCollection is not queryable.
                 foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
                     if(appWindowViewModel.LetterBound.Equals(letter, StringComparison.OrdinalIgnoreCase)) {
                         retVal.Add(appWindowViewModel);
@@ -681,10 +681,10 @@ namespace TaskSpace {
                     }
                     // [!] If true, don't immediately switch.
                     else if(!forceShowWindow) {
-                        // [bug]? If there is only one app, still show the main window?
+                        // #bug? If there is only one app, still show the main window?
                         appWindowViewModel.AppWindow.SwitchToLastVisibleActivePopup();
 
-                        _targetWindowList = null; // [gotcha] Without this, next ALT+Space will still be filtered (to just one app) and immediately hide.
+                        _targetWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered (to just one app) and immediately hide.
 
                         HideWindow();
                     }
@@ -692,7 +692,7 @@ namespace TaskSpace {
                 else {
                     //if(string.IsNullOrWhiteSpace(letter)) {
                     //}
-                    //else if(!string.IsNullOrWhiteSpace(letter)) { // [redundant]
+                    //else if(!string.IsNullOrWhiteSpace(letter)) { // #redundant
                     // Update the indexing.
                     for(int i0 = 0, i1 = 1; i0 < appWindowViewModels.Count; i0++, i1++) {
                         AppWindowViewModel appWindowViewModel = appWindowViewModels[i0];
@@ -700,7 +700,7 @@ namespace TaskSpace {
 
                         appWindowViewModel.LetterBound = (string.IsNullOrEmpty(letter) || i0 == 0 || appWindowViewModel.IsLaunchCommand)
                             ? appWindowViewModel.LetterMapped
-                            // [!] Clear the letter, eg only the first app in list is mapped to letter (so hitting letter again to select it would work).
+                            // [!] Clear the letter, e.g. only the first app in list is mapped to letter (so hitting letter again to select it would work).
                             : string.Empty;
                     }
 
@@ -710,7 +710,7 @@ namespace TaskSpace {
                         ListBoxPrograms.SelectedItem = ListBoxPrograms.Items[0];
                     }
 
-                    _targetWindowList = null; // [gotcha] Without this, next ALT+Space will still be filtered.
+                    _targetWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered.
                 }
             }
         }
@@ -729,7 +729,7 @@ namespace TaskSpace {
                 }
             }
 
-            // [bug]? What if above didn't find any apps? Still hide?
+            // #bug? What if above didn't find any apps? Still hide?
             HideWindow();
         }
 
@@ -814,7 +814,7 @@ namespace TaskSpace {
                 _foregroundWindow = SystemWindow.ForegroundWindow;
                 Show();
                 Activate();
-                //Keyboard.Focus(textboxSearch); // [cut]?
+                //Keyboard.Focus(textboxSearch); // #cut?
 
                 // [!]
                 LoadData(InitialFocus.NextItem);
@@ -855,7 +855,7 @@ namespace TaskSpace {
                 _foregroundWindow = SystemWindow.ForegroundWindow;
                 Show();
                 Activate();
-                //Keyboard.Focus(textboxSearch); // [cut]?
+                //Keyboard.Focus(textboxSearch); // #cut?
 
                 // [!]
                 LoadData(InitialFocus.NextItem, isSingleAppModeEnabled: true);
@@ -915,14 +915,14 @@ namespace TaskSpace {
             }
         }
 
-        // [gotcha] The 3rd party apps like TaskSpace might not have the "right" to manage which app is in the foreground,
+        // #gotcha The 3rd party apps like TaskSpace might not have the "right" to manage which app is in the foreground,
         // and pressing ALT key might be hack for this.
-        // [bug]? This might be why the previous foreground window goes to the last Z-order place?
+        // #bug? This might be why the previous foreground window goes to the last Z-order place?
         private void ActivateAndFocusMainWindow() {
             // What happens below looks a bit weird, but for TaskSpace to get focus when using the Alt+Tab hook,
             // it is needed to simulate an Alt keypress which will bring TaskSpace to the foreground.
             // Otherwise TaskSpace will become the foreground window, but the previous window will retain focus, and keep getting the keyboard input.
-            // [link] http://www.codeproject.com/Tips/76427/How-to-bring-window-to-top-with-SetForegroundWindo
+            // #link http://www.codeproject.com/Tips/76427/How-to-bring-window-to-top-with-SetForegroundWindo
 
             IntPtr thisWindowHandle = new WindowInteropHelper(this).Handle;
             AppWindow thisWindow = new AppWindow(thisWindowHandle);
@@ -941,7 +941,7 @@ namespace TaskSpace {
             SystemWindow.ForegroundWindow = thisWindow;
             Activate();
 
-            // Release the ALT key if it was pressed above. [todo] Is this why sometimes the app is immediately switched on ALT+Space?
+            // Release the ALT key if it was pressed above. #todo Is this why sometimes the app is immediately switched on ALT+Space?
             if(altKeyPressed) {
                 altKey.Release();
             }
@@ -1096,9 +1096,8 @@ namespace TaskSpace {
             e.Handled = true;
         }
 
-        private void MainWindow_OnLostFocus(object sender, EventArgs e) {
-            // [bug]!!! Why is this hitting with the new changes?
-            //HideWindow();
+        private void MainWindow_Deactivated(object sender, EventArgs e) {
+            HideWindow();
         }
 
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e) {

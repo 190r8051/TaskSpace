@@ -526,7 +526,7 @@ namespace ManagedWinapi.Windows {
                 int length = 64;
                 while(true) {
                     StringBuilder sb = new StringBuilder(length);
-                    //ApiHelper.FailIfZero(GetClassName(_hwnd, sb, sb.Capacity)); // [gotcha] DON'T fail on 0 (to support launch commands).
+                    //ApiHelper.FailIfZero(GetClassName(_hwnd, sb, sb.Capacity)); // #gotcha DON'T fail on 0 (to support launch commands).
                     if(sb.Length != length - 1) {
                         return sb.ToString();
                     }

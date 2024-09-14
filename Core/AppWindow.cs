@@ -105,9 +105,9 @@ namespace TaskSpace.Core {
             return cloaked;
         }
 
-        //// [experimental]<From FrigoTab.>
+        //// #experimental<From FrigoTab.>
         //public bool IsAltTabWindow(List<string> blockList) {
-        //    //if (this.ProcessName.Equals("devenv.exe") || this.ProcessName.Equals("NimbleText.exe")) { // [debug]
+        //    //if (this.ProcessName.Equals("devenv.exe") || this.ProcessName.Equals("NimbleText.exe")) { // #debug
         //    //    string s = "abc";
         //    //    string s2 = s;
         //    //}
@@ -149,7 +149,7 @@ namespace TaskSpace.Core {
         //    return retVal;
         //}
 
-        // [todo] This used to work, but then started showing some non-switchable apps (see new blocked list logic).
+        // #todo This used to work, but then started showing some non-switchable apps (see new blocked list logic).
         public bool IsAltTabWindow(List<string> blockList) {
             if(!Visible) {
                 return false;
@@ -187,7 +187,7 @@ namespace TaskSpace.Core {
                 return false;
             }
 
-            // [warning]??? DON'T move it before the above checks. But shouldn't matter if blockList doesn't contain process?
+            // #warning??? DON'T move it before the above checks. But shouldn't matter if blockList doesn't contain process?
             if(blockList.Contains(this.ProcessName)) {
                 return false;
             }
@@ -258,7 +258,7 @@ namespace TaskSpace.Core {
             return (ExtendedStyle & WindowExStyleFlags.NOACTIVATE) == WindowExStyleFlags.NOACTIVATE;
         }
 
-        // [new]
+        // #new
         private static IntPtr GetLastActiveVisiblePopup(IntPtr root) {
             IntPtr hwndWalk = IntPtr.Zero;
             IntPtr hwndTry = root;
