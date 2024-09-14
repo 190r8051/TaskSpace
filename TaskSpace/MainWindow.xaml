@@ -5,7 +5,7 @@
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         Closing="OnClose" ResizeMode="NoResize" ShowInTaskbar="False" WindowStyle="None" AllowsTransparency="True"
         SizeToContent="WidthAndHeight"
-        Title="" MinWidth="542" Deactivated="MainWindow_OnLostFocus" Loaded="MainWindow_OnLoaded"
+        Title="" MinWidth="542" Deactivated="MainWindow_Deactivated" Loaded="MainWindow_OnLoaded"
         BorderThickness="1"
     >
 
@@ -73,7 +73,7 @@
                 </StackPanel>
             </DockPanel>
             <Grid x:Name="GridMain" DockPanel.Dock="Top">
-                <!-- [bug]!!! NOT SHOWN. -->
+                <!-- #bug!!! NOT SHOWN. -->
                 <!--<TextBlock Name="ShowSearchIcon" Margin="0,0,10,0" Width="15" HorizontalAlignment="Left" TextAlignment="Center"
                        VerticalAlignment="Center"
                        FontSize="18" FontWeight="Bold" Opacity="0.4"
@@ -103,7 +103,7 @@
                            <!--Name="ShowHelpTextBlock" Cursor="Hand" Foreground="DarkGray">-->
                     <!--<TextBlock.Text>?</TextBlock.Text>-->
                     <TextBlock.Text>🔎</TextBlock.Text>
-                    <!-- [cut]? -->
+                    <!-- #cut? -->
                     <!--<TextBlock.Triggers>
                         <EventTrigger RoutedEvent="MouseEnter">
                             <EventTrigger.Actions>

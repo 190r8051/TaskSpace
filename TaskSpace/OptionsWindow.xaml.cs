@@ -39,9 +39,9 @@ namespace TaskSpace {
             HotkeyPreview.Text = _hotkeyViewModel.ToString();
             HotkeyPreview.IsEnabled = Settings.Default.EnableHotKey;
 
-            // [note] For now, reuse modifier keys, eg if above is ALT+Space, then this hotkey is ALT+`.
+            // #note For now, reuse modifier keys, e.g. if above is ALT+Space, then this hotkey is ALT+`.
             _hotkeyViewModel2 = new HotkeyViewModel {
-                KeyCode = KeyInterop.KeyFromVirtualKey(192), // [note] For now, hardcode to Oemtilde.
+                KeyCode = KeyInterop.KeyFromVirtualKey(192), // #note For now, hardcode to Oemtilde.
                 Alt = _hotkey.Alt,
                 Ctrl = _hotkey.Ctrl,
                 Windows = _hotkey.WindowsKey,
@@ -49,7 +49,7 @@ namespace TaskSpace {
             };
             HotKeyCheckBox2.IsChecked = Settings.Default.EnableHotKey2;
             HotkeyPreview2.Text = _hotkeyViewModel2.ToString();
-            HotkeyPreview2.IsEnabled = true; //Settings.Default.EnableHotKey; // [todo] Add a separate setting.
+            HotkeyPreview2.IsEnabled = true; //Settings.Default.EnableHotKey; // #todo Add a separate setting.
 
             AltTabCheckBox.IsChecked = Settings.Default.AltTabHook;
             AutoSwitch.IsChecked = Settings.Default.AutoSwitch;
@@ -62,7 +62,7 @@ namespace TaskSpace {
             Close();
         }
 
-        // [todo] Should add modification for alt hotkey etc.
+        // #todo Should add modification for alt hotkey etc.
         private void Ok_Click(object sender, RoutedEventArgs e) {
             bool closeOptionsWindow = true;
 

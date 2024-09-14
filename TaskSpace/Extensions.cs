@@ -17,7 +17,7 @@ namespace TaskSpace {
 
         /// <summary>
         /// Transforms the 1-based index to 1-based index string which represents a key on the keyboard,
-        /// eg either 1..9 digit, or 0 (meaning 1-index 10), or F1+ keys.
+        /// e.g. either 1..9 digit, or 0 (meaning 1-index 10), or F1+ keys.
         /// [example]
         /// - 1 => "1".
         /// - 9 => "9".
@@ -38,7 +38,7 @@ namespace TaskSpace {
             }
             else if(10 < @this) {
                 int functionIndex = @this - 10;
-                retVal = $"F{functionIndex}"; // [todo] Use the small "f" unicode char?
+                retVal = $"F{functionIndex}"; // #todo Use the small "f" unicode char?
             }
 
             return retVal;

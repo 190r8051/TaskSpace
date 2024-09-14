@@ -5,7 +5,7 @@ using TaskSpace.Core.Matchers;
 
 namespace TaskSpace.Core {
     public class WindowFilterer {
-        // [cut]
+        // #cut
         //public IEnumerable<FilterResult<T>> FilterByLetter<T>(WindowFilterContext<T> context, string letter) where T : IWindowText {
 
         //    string filterText = letter;
@@ -17,8 +17,8 @@ namespace TaskSpace.Core {
         //        //    w =>
         //        //        new {
         //        //            Window = w,
-        //        //            ResultsTitle = new List<MatchResult>(), // [blank]
-        //        //            ResultsProcessTitle = new List<MatchResult>() // [blank]
+        //        //            ResultsTitle = new List<MatchResult>(), // #blank
+        //        //            ResultsProcessTitle = new List<MatchResult>() // #blank
         //        //        }
         //        //)
         //        //.Where(predicate: r => {
@@ -122,7 +122,7 @@ namespace TaskSpace.Core {
             ContainsMatcher containsMatcher = new ContainsMatcher();
             SignificantCharactersMatcher significantCharactersMatcher = new SignificantCharactersMatcher();
 
-            // [bug]? This seems to take-over preferrable matches like "TASk space" so that "TASk" is not even found (went down the fuzzy-search path).
+            // #bug? This seems to take-over preferrable matches like "TASk space" so that "TASk" is not even found (went down the fuzzy-search path).
             //IndividualCharactersMatcher individualCharactersMatcher = new IndividualCharactersMatcher();
 
             // [!] If the filterText is just a single space, DON'T filter.

@@ -64,7 +64,7 @@ namespace TaskSpace {
             }
         }
 
-        // This is the mapped letter if found for this app (might change only on start-up, eg if there was a change in config).
+        // This is the mapped letter if found for this app (might change only on start-up, e.g. if there was a change in config).
         private string _letterMapped;
         public string LetterMapped {
             get { return _letterMapped; }
@@ -133,7 +133,7 @@ namespace TaskSpace {
             this.IsLaunchCommand = true;
 
             this.AppWindow = null; // No window as this is a launch command?
-            this.LaunchCommand = launchCommand; // [todo] Should be possible to mark an app as always in main window (eg if NPP is active, show instance, otherwise show launch command, including if filtering to &Editors).
+            this.LaunchCommand = launchCommand; // #todo Should be possible to mark an app as always in main window (eg if NPP is active, show instance, otherwise show launch command, including if filtering to &Editors).
 
             this.LetterMapped = letter.ToString();
             this.LetterBound = letter.ToString();
@@ -153,7 +153,7 @@ namespace TaskSpace {
             this.LetterMapped = string.Empty;
             this.LetterBound = string.Empty;
 
-            // [future] Might still be inefficient, ie could be pivoted from charToAppList to appToChar.
+            // #future Might still be inefficient, ie could be pivoted from charToAppList to appToChar.
             for(int i = (int)'A'; i <= (int)'Z'; i++) {
                 char letter = (char)i;
 
