@@ -3,19 +3,16 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Media.Imaging;
 
-namespace TaskSpace
-{
-    public class IconToBitmapImageConverter
-    {
-        public BitmapImage Convert(Icon icon)
-        {
-            if (icon == null)
-            {
+namespace TaskSpace {
+    public class IconToBitmapImageConverter {
+        public BitmapImage Convert(
+            Icon icon
+        ) {
+            if(icon == null) {
                 return null;
             }
 
-            using (MemoryStream memory = new MemoryStream())
-            {
+            using(MemoryStream memory = new MemoryStream()) {
                 Bitmap bitmap = icon.ToBitmap();
                 bitmap.Save(memory, ImageFormat.Png);
                 memory.Position = 0;

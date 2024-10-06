@@ -63,7 +63,10 @@ namespace TaskSpace {
         #endregion Externs
 
         #region Properties
-        public Dictionary<char, List<string>> CharToAppList { get; private set; } = new Dictionary<char, List<string>>();
+        /// <summary>
+        /// The SettingsCharToAppList value. Static, i.e. loaded once on startup.
+        /// </summary>
+        public Dictionary<char, List<string>> SettingsCharToAppList { get; private set; } = new Dictionary<char, List<string>>();
 
         /// <summary>
         /// Contains the value when the main window has been activated.
@@ -80,6 +83,12 @@ namespace TaskSpace {
         /// The is-search-enabled value.
         /// </summary>
         private bool _isSearchEnabled = false;
+
+        /// <summary>
+        /// The is-auto-mapping-enabled value.
+        /// #future Move to settings (settable in UI).
+        /// </summary>
+        private bool _isAutoMappingEnabled = true;
 
         //private int? _lastSelectedIndex = null; // #cut
 
@@ -393,7 +402,8 @@ namespace TaskSpace {
         }
 
         /// <summary>
-        /// Populates the window list with the current running windows.
+        /// Populates the window list with the current running windows, creating the mappings.
+        /// #future #perf Could map from the settings once and append only automatic mappings on every LoadData call.
         /// </summary>
         /// <param name="focus">The focus value, i.e. Previous/Current/Next.</param>
         /// <param name="isSingleAppModeEnabled">[opt; default is false] Activates the single-app-mode, i.e. the UI is filtered to a single (current) app instances.</param>
@@ -411,7 +421,11 @@ namespace TaskSpace {
 
             _mainWindowActiveDateTime = DateTime.UtcNow;
 
-            // Initialize CharToAppsList dictionary on startup (done once only).
+            // #future Should be done once on startup, not on every LoadData call (accept as param).
+            // Clear the previous mappings (some previous apps might be closed now).
+            this.SettingsCharToAppList = new Dictionary<char, List<string>>();
+
+            // Initialize CharToAppsList dictionary using the Settings.
             for(int i = (int)'A'; i <= (int)'Z'; i++) {
                 char letter = (char)i;
                 string propertyName = $"Apps_{letter}";
@@ -420,36 +434,41 @@ namespace TaskSpace {
                 PropertyInfo propertyInfo = Properties.Settings.Default.GetType().GetProperty(propertyName);
 
                 List<string> appsList = new List<string>();
-                if(propertyInfo != null) {
-                    // Get the value of the property.
-                    object value = propertyInfo.GetValue(Properties.Settings.Default, null);
-
-                    // Check if the value is a StringCollection.
-                    if(value is StringCollection collection) {
-                        // Convert the StringCollection to List<string>.
-                        appsList = collection.Cast<string>().Select(x => x.ToLower()).ToList();
-                    }
+                if(propertyInfo == null) {
+                    continue;
                 }
 
-                //this.CharToAppList.Add(letter, appsList);
-                this.CharToAppList[letter] = appsList;
+                // Get the value of the property.
+                object value = propertyInfo.GetValue(Properties.Settings.Default, null);
+
+                // Check if the value is a StringCollection.
+                if(value is StringCollection collection) {
+                    // Convert the StringCollection to List<string>.
+                    appsList = collection
+                        .Cast<string>()
+                        .Select(x => x.ToLower())
+                        .ToList();
+                }
+
+                this.SettingsCharToAppList[letter] = appsList;
             }
 
             _unfilteredWindowList = new WindowFinder()
-                .GetWindows(Properties.Settings.Default.BlockList.Cast<string>().ToList())
-                .Select(window => new AppWindowViewModel(window, this.CharToAppList))
+                // #todo This should be renamed to GetAndMapWindows and instead of returning
+                // AppWindow, return AppWindowViewModel (already mapped to static/dynamic letter).
+                .GetAndMapWindows(Properties.Settings.Default.BlockList.Cast<string>().ToList(), this.SettingsCharToAppList, this._isAutoMappingEnabled)
                 .ToList();
 
             AppWindowViewModel firstWindow = _unfilteredWindowList.FirstOrDefault();
 
-            bool foregroundWindowMovedToBottom = false;
+            bool isForegroundWindowMovedToBottom = false;
 
             // Index.
             for(int i0 = 0, i1 = 1; i0 < _unfilteredWindowList.Count; i0++, i1++) {
-                AppWindowViewModel window = _unfilteredWindowList[i0];
-                window.FormattedTitle = new XamlHighlighter().Highlight(new[] { new StringPart(window.AppWindow.Title) });
-                window.FormattedProcessTitle = new XamlHighlighter().Highlight(new[] { new StringPart(window.AppWindow.ProcessName) });
-                window.IndexString = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
+                AppWindowViewModel appWindowViewModel = _unfilteredWindowList[i0];
+                appWindowViewModel.FormattedTitle = new XamlHighlighter().Highlight(new[] { new StringPart(appWindowViewModel.AppWindow.Title) });
+                appWindowViewModel.FormattedProcessTitle = new XamlHighlighter().Highlight(new[] { new StringPart(appWindowViewModel.AppWindow.ProcessName) });
+                appWindowViewModel.IndexString = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
             }
 
             // #todo!!! Could be integrated into GetSwitchableWindows (ie no filtering mode).
@@ -528,7 +547,7 @@ namespace TaskSpace {
                 // #nop Keeping the current item index.
             }
             else if(focus == InitialFocus.NextItem) { // #redundant
-                // #todo!!! Add to visual settings with description.
+                                                      // #todo!!! Add to visual settings with description.
                 if(Properties.Settings.Default.IsFocusNextEnabled) {
                     ListBoxPrograms.SelectedIndex = 1;
                 }
@@ -1001,18 +1020,21 @@ namespace TaskSpace {
             e.Handled = true;
         }
 
-        private async void CloseWindow(object sender, ExecutedRoutedEventArgs e) {
-            if(0 < ListBoxPrograms.Items.Count) {
-                AppWindowViewModel win = (AppWindowViewModel)ListBoxPrograms.SelectedItem;
-                if(win != null) {
-                    bool isClosed = await _windowCloser.TryCloseAsync(win);
-                    if(isClosed) {
-                        RemoveWindow(win);
-                    }
-                }
+        private async void CloseWindow(
+            object sender
+            , ExecutedRoutedEventArgs e
+        ) {
+            if(ListBoxPrograms.Items.Count <= 0) {
+                HideWindow();
             }
             else {
-                HideWindow();
+                AppWindowViewModel appWindowViewModel = (AppWindowViewModel)ListBoxPrograms.SelectedItem;
+                if(appWindowViewModel != null) {
+                    bool isClosed = await _windowCloser.TryCloseAsync(appWindowViewModel);
+                    if(isClosed) {
+                        RemoveWindow(appWindowViewModel);
+                    }
+                }
             }
 
             e.Handled = true;

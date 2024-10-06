@@ -10,9 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using TaskSpace.Core;
 
-namespace TaskSpace {
+namespace TaskSpace.Core {
     public class AppWindowViewModel : INotifyPropertyChanged, IWindowText {
         #region IWindowText Members
         public AppWindow AppWindow { get; private set; }
@@ -55,6 +54,11 @@ namespace TaskSpace {
             }
         }
 
+        /// <summary>
+        /// The letter mapped ordinal (0-based) inside the app list,
+        /// e.g. if 'M' is mapped to app list ["spotify.exe", "aimp.exe"] and the current app is "aimp.exe",
+        /// then the value is 1.
+        /// </summary>
         private int _letterMappedOrdinal;
         public int LetterMappedOrdinal {
             get { return _letterMappedOrdinal; }
@@ -128,8 +132,11 @@ namespace TaskSpace {
             this.AppWindow = null;
         }
 
-        // Command constructor (eg for launching Power Menu commands).
-        public AppWindowViewModel(string launchCommand, char letter) {
+        // Command constructor (e.g. for launching Power Menu commands).
+        public AppWindowViewModel(
+            string launchCommand
+            , char letter
+        ) {
             this.IsLaunchCommand = true;
 
             this.AppWindow = null; // No window as this is a launch command?
@@ -146,27 +153,24 @@ namespace TaskSpace {
             this.FormattedTitle = ">>> LOCK"; // Hard-coded for now.
         }
 
-        // This maps the settings config letters.
-        public AppWindowViewModel(AppWindow appWindow, Dictionary<char, List<string>> charToAppList) {
+        /// <summary>
+        /// The AppWindowViewModel constructor for mapping the input appWindow to the settings config letters.
+        /// </summary>
+        /// <param name="appWindow">The app-window value.</param>
+        /// <param name="letterMapped">The letter-mapped value.</param>
+        /// <param name="letterMappedOrdinal">The letter-mapped-ordinal value.</param>
+        /// <param name="letterBound">The letter-bound value.</param>
+        public AppWindowViewModel(
+            AppWindow appWindow
+            , string letterMapped
+            , int letterMappedOrdinal
+            , string letterBound
+        ) {
+            // #todo Param checking.
             this.AppWindow = appWindow;
-
-            this.LetterMapped = string.Empty;
-            this.LetterBound = string.Empty;
-
-            // #future Might still be inefficient, ie could be pivoted from charToAppList to appToChar.
-            for(int i = (int)'A'; i <= (int)'Z'; i++) {
-                char letter = (char)i;
-
-                string processWithExtension = $"{this.AppWindow.ProcessName}.exe".ToLower();
-                //if (appsList.Contains(processWithExtension)) {
-                int ordinal = charToAppList[letter].IndexOf(processWithExtension);
-                if(ordinal != -1) {
-                    this.LetterMappedOrdinal = ordinal;
-                    this.LetterMapped = letter.ToString();
-                    this.LetterBound = letter.ToString();
-                    break;
-                }
-            }
+            this.LetterMapped = letterMapped;
+            this.LetterMappedOrdinal = letterMappedOrdinal;
+            this.LetterBound = letterBound;
         }
         #endregion Constructors
 

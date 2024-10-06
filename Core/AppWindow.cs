@@ -92,13 +92,14 @@ namespace TaskSpace.Core {
             }
         }
 
-        public new static IEnumerable<AppWindow> AllToplevelWindows {
-            get {
-                return ManagedWinapi.Windows.SystemWindow
-                    .AllToplevelWindows
-                    .Select(w => new AppWindow(w.HWnd));
-            }
-        }
+        // #CUT
+        //public new static IEnumerable<AppWindow> AllToplevelWindows {
+        //    get {
+        //        return ManagedWinapi.Windows.SystemWindow
+        //            .AllToplevelWindows
+        //            .Select(systemWindow => new AppWindow(systemWindow.HWnd));
+        //    }
+        //}
 
         public static bool IsCloaked(IntPtr window) {
             WinApi.DwmGetWindowAttribute(window, WindowAttribute.Cloaked, out bool cloaked, Marshal.SizeOf(typeof(bool)));
@@ -150,7 +151,7 @@ namespace TaskSpace.Core {
         //}
 
         // #todo This used to work, but then started showing some non-switchable apps (see new blocked list logic).
-        public bool IsAltTabWindow(List<string> blockList) {
+        public bool IsAltTabbableWindow(List<string> blockList) {
             if(!Visible) {
                 return false;
             }
