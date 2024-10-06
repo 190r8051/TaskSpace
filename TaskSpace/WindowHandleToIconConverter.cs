@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using TaskSpace.Core;
 
 namespace TaskSpace {
+    // #todo? Move to Core. Or more related to UI?
     public class WindowHandleToIconConverter : IValueConverter {
         private readonly IconToBitmapImageConverter _iconToBitmapConverter;
 
@@ -15,7 +16,12 @@ namespace TaskSpace {
             _iconToBitmapConverter = new IconToBitmapImageConverter();
         }
 
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
+        public object Convert(
+            object value
+            , Type targetType
+            , object parameter
+            , CultureInfo culture
+        ) {
             IntPtr handle = (IntPtr)value;
             string key = "IconImage-" + handle;
             string shortCacheKey = key + "-shortCache";
@@ -55,7 +61,12 @@ namespace TaskSpace {
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
+        public object ConvertBack(
+            object value
+            , Type targetType
+            , object parameter
+            , CultureInfo culture
+        ) {
             throw new NotImplementedException();
         }
     }

@@ -13,18 +13,25 @@ namespace TaskSpace {
 
         #region IValueConverter Members
 
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
+        public object Convert(
+            object value
+            , Type targetType
+            , object parameter
+            , System.Globalization.CultureInfo culture
+        ) {
             return ((bool)value) ? IfTrue : IfFalse;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter,
+        public object ConvertBack(
+            object value
+            , Type targetType
+            , object parameter,
             System.Globalization.CultureInfo culture) {
             throw new NotImplementedException();
         }
 
-        #endregion
+        #endregion IValueConverter Members
     }
-
 
     public class BoolToDoubleConverter : BoolConverter<double> {
     }
