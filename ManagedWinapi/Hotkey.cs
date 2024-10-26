@@ -16,14 +16,19 @@ namespace ManagedWinapi {
         /// </summary>
         public event EventHandler HotkeyPressed;
 
-        private static Object myStaticLock = new Object();
-        private static int hotkeyCounter = 0xA000;
+        private static Object _myStaticLock = new Object();
+        private static int _hotkeyCounter = 0xA000;
 
-        private int hotkeyIndex;
-        private bool isDisposed = false, isEnabled = false, isRegistered = false;
+        private int _hotkeyIndex;
+        private bool _isDisposed = false;
+        private bool _isEnabled = false;
+        private bool _isRegistered = false;
         private Keys _keyCode;
-        private bool _ctrl, _alt, _shift, _windows;
-        private readonly IntPtr hWnd;
+        private bool _ctrl;
+        private bool _alt;
+        private bool _shift;
+        private bool _windows;
+        private readonly IntPtr _hWnd;
 
         /// <summary>
         /// Initializes a new instance of this class with the specified container.
@@ -38,21 +43,21 @@ namespace ManagedWinapi {
         /// </summary>
         public Hotkey() {
             EventDispatchingNativeWindow.Instance.EventHandler += nw_EventHandler;
-            lock(myStaticLock) {
-                hotkeyIndex = hotkeyCounter++;
+            lock(_myStaticLock) {
+                _hotkeyIndex = _hotkeyCounter++;
             }
-            hWnd = EventDispatchingNativeWindow.Instance.Handle;
+            _hWnd = EventDispatchingNativeWindow.Instance.Handle;
         }
 
         /// <summary>
         /// Enables the hotkey. When the hotkey is enabled, pressing it causes a
         /// <c>HotkeyPressed</c> event instead of being handled by the active application.
         /// </summary>
-        public bool Enabled {
-            get => isEnabled;
+        public bool IsEnabled {
+            get => _isEnabled;
             set {
-                isEnabled = value;
-                updateHotkey(false);
+                _isEnabled = value;
+                UpdateHotkey(false);
             }
         }
 
@@ -64,7 +69,7 @@ namespace ManagedWinapi {
 
             set {
                 _keyCode = value;
-                updateHotkey(true);
+                UpdateHotkey(true);
             }
         }
 
@@ -73,7 +78,7 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Ctrl {
             get => _ctrl;
-            set { _ctrl = value; updateHotkey(true); }
+            set { _ctrl = value; UpdateHotkey(true); }
         }
 
         /// <summary>
@@ -81,7 +86,7 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Alt {
             get => _alt;
-            set { _alt = value; updateHotkey(true); }
+            set { _alt = value; UpdateHotkey(true); }
         }
 
         /// <summary>
@@ -89,7 +94,7 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Shift {
             get => _shift;
-            set { _shift = value; updateHotkey(true); }
+            set { _shift = value; UpdateHotkey(true); }
         }
 
         /// <summary>
@@ -99,12 +104,12 @@ namespace ManagedWinapi {
         /// </summary>
         public bool WindowsKey {
             get => _windows;
-            set { _windows = value; updateHotkey(true); }
+            set { _windows = value; UpdateHotkey(true); }
         }
 
         void nw_EventHandler(ref Message m, ref bool handled) {
             if(handled) return;
-            if(m.Msg != WM_HOTKEY || m.WParam.ToInt32() != hotkeyIndex) {
+            if(m.Msg != WM_HOTKEY || m.WParam.ToInt32() != _hotkeyIndex) {
                 return;
             }
 
@@ -117,36 +122,40 @@ namespace ManagedWinapi {
         /// </summary>
         /// <param name="disposing">Whether to dispose managed resources.</param>
         protected override void Dispose(bool disposing) {
-            isDisposed = true;
-            updateHotkey(false);
+            _isDisposed = true;
+            UpdateHotkey(false);
             EventDispatchingNativeWindow.Instance.EventHandler -= nw_EventHandler;
             base.Dispose(disposing);
         }
 
-        private void updateHotkey(bool reregister) {
-            bool shouldBeRegistered = isEnabled && !isDisposed && !DesignMode;
-            if(isRegistered && (!shouldBeRegistered || reregister)) {
-                // unregister hotkey
-                UnregisterHotKey(hWnd, hotkeyIndex);
-                isRegistered = false;
+        private void UpdateHotkey(bool reregister) {
+            bool shouldBeRegistered = _isEnabled && !_isDisposed && !DesignMode;
+            if(_isRegistered && (!shouldBeRegistered || reregister)) {
+                // Unregister hotkey.
+                bool successUnregister = UnregisterHotKey(_hWnd, _hotkeyIndex);
+                _isRegistered = false;
             }
 
-            if(isRegistered || !shouldBeRegistered) {
+            if(_isRegistered || !shouldBeRegistered) {
                 return;
             }
 
-            // register hotkey
-            bool success = RegisterHotKey(hWnd, hotkeyIndex,
+            // Register hotkey.
+            bool success = RegisterHotKey(_hWnd, _hotkeyIndex,
                 (_shift ? MOD_SHIFT : 0) + (_ctrl ? MOD_CONTROL : 0) +
                 (_alt ? MOD_ALT : 0) + (_windows ? MOD_WIN : 0), (int)_keyCode);
-            if(!success) throw new HotkeyAlreadyInUseException();
-            isRegistered = true;
+            if(!success) {
+                throw new HotkeyAlreadyInUseException();
+            }
+
+            _isRegistered = true;
         }
 
         #region PInvoke Declarations
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 

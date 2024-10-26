@@ -4,19 +4,16 @@ using System.Windows.Forms;
 using ManagedWinapi;
 using ManagedWinapi.Hooks;
 
-namespace TaskSpace
-{
+namespace TaskSpace {
     public delegate void AltTabHookEventHandler(object sender, AltTabHookEventArgs args);
 
-    public class AltTabHookEventArgs : EventArgs
-    {
+    public class AltTabHookEventArgs : EventArgs {
         public bool CtrlDown { get; set; }
         public bool ShiftDown { get; set; }
         public bool Handled { get; set; }
     }
 
-    public class AltTabHook : IDisposable
-    {
+    public class AltTabHook : IDisposable {
         public event AltTabHookEventHandler Pressed;
         private const int AltKey = 32;
         private const int CtrlKey = 11;
@@ -29,28 +26,23 @@ namespace TaskSpace
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly LowLevelKeyboardHook _lowLevelKeyboardHook;
 
-        public AltTabHook()
-        {
+        public AltTabHook() {
             _lowLevelKeyboardHook = new LowLevelKeyboardHook();
             _lowLevelKeyboardHook.MessageIntercepted += OnMessageIntercepted;
             _lowLevelKeyboardHook.StartHook();
         }
 
-        private void OnMessageIntercepted(LowLevelMessage lowLevelMessage, ref bool handled)
-        {
+        private void OnMessageIntercepted(LowLevelMessage lowLevelMessage, ref bool handled) {
             LowLevelKeyboardMessage keyboardMessage = lowLevelMessage as LowLevelKeyboardMessage;
-            if (handled || keyboardMessage == null)
-            {
+            if(handled || keyboardMessage == null) {
                 return;
             }
 
-            if (!IsTabKeyDown(keyboardMessage))
-            {
+            if(!IsTabKeyDown(keyboardMessage)) {
                 return;
             }
 
-            if (!IsKeyDown(_altKey))
-            {
+            if(!IsKeyDown(_altKey)) {
                 return;
             }
 
@@ -62,32 +54,26 @@ namespace TaskSpace
             handled = eventArgs.Handled;
         }
 
-        private static bool IsKeyDown(KeyboardKey keyboardKey)
-        {
+        private static bool IsKeyDown(KeyboardKey keyboardKey) {
             return (keyboardKey.AsyncState & 32768) != 0;
         }
 
-        private bool IsTabKeyDown(LowLevelKeyboardMessage keyboardMessage)
-        {
-            return keyboardMessage.VirtualKeyCode == (int) Keys.Tab &&
+        private bool IsTabKeyDown(LowLevelKeyboardMessage keyboardMessage) {
+            return keyboardMessage.VirtualKeyCode == (int)Keys.Tab &&
                    (keyboardMessage.Message == WM_KEYDOWN || keyboardMessage.Message == WM_SYSKEYDOWN);
         }
 
-        private AltTabHookEventArgs OnPressed(bool shiftDown, bool ctrlDown)
-        {
+        private AltTabHookEventArgs OnPressed(bool shiftDown, bool ctrlDown) {
             AltTabHookEventArgs altTabHookEventArgs = new AltTabHookEventArgs { ShiftDown = shiftDown, CtrlDown = ctrlDown };
             AltTabHookEventHandler handler = Pressed;
-            if (handler != null)
-            {
+            if(handler != null) {
                 handler(this, altTabHookEventArgs);
             }
             return altTabHookEventArgs;
         }
 
-        public void Dispose()
-        {
-            if (_lowLevelKeyboardHook != null)
-            {
+        public void Dispose() {
+            if(_lowLevelKeyboardHook != null) {
                 _lowLevelKeyboardHook.Dispose();
             }
         }

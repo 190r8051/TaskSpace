@@ -11,45 +11,50 @@ using MessageBox = System.Windows.MessageBox;
 
 namespace TaskSpace {
     public partial class OptionsWindow : Window {
-        private readonly HotKey _hotkey;
-        private readonly HotKey _hotkey2;
-        private HotkeyViewModel _hotkeyViewModel;
-        private HotkeyViewModel _hotkeyViewModel2;
+        private readonly Hotkey _hotkeyMain;
+        private readonly Hotkey _hotkeyAlt;
+        private HotkeyViewModel _hotkeyViewModelMain;
+        private HotkeyViewModel _hotkeyViewModelAlt;
 
         public OptionsWindow() {
             InitializeComponent();
 
-            // Show what's already selected.
-            _hotkey = (HotKey)Application.Current.Properties["hotkey"];
-
+            _hotkeyMain = (Hotkey)Application.Current.Properties["HotkeyMain"];
             try {
-                _hotkey.LoadSettings();
+                _hotkeyMain.LoadSettingsMain();
             }
             catch(HotkeyAlreadyInUseException) {
             }
 
-            _hotkeyViewModel = new HotkeyViewModel {
-                KeyCode = KeyInterop.KeyFromVirtualKey((int)_hotkey.KeyCode),
-                Alt = _hotkey.Alt,
-                Ctrl = _hotkey.Ctrl,
-                Windows = _hotkey.WindowsKey,
-                Shift = _hotkey.Shift
+            _hotkeyAlt = (Hotkey)Application.Current.Properties["HotkeyAlt"];
+            try {
+                _hotkeyAlt.LoadSettingsAlt();
+            }
+            catch(HotkeyAlreadyInUseException) {
+            }
+
+            _hotkeyViewModelMain = new HotkeyViewModel {
+                KeyCode = KeyInterop.KeyFromVirtualKey((int)_hotkeyMain.KeyCode),
+                Alt = _hotkeyMain.Alt,
+                Ctrl = _hotkeyMain.Ctrl,
+                Windows = _hotkeyMain.WindowsKey,
+                Shift = _hotkeyMain.Shift
             };
-            HotKeyCheckBox.IsChecked = Settings.Default.EnableHotKey;
-            HotkeyPreview.Text = _hotkeyViewModel.ToString();
-            HotkeyPreview.IsEnabled = Settings.Default.EnableHotKey;
+            HotkeyCheckBox.IsChecked = Settings.Default.EnableHotkeyMain;
+            HotkeyPreview.Text = _hotkeyViewModelMain.ToString();
+            HotkeyPreview.IsEnabled = Settings.Default.EnableHotkeyMain;
 
             // #note For now, reuse modifier keys, e.g. if above is ALT+Space, then this hotkey is ALT+`.
-            _hotkeyViewModel2 = new HotkeyViewModel {
-                KeyCode = KeyInterop.KeyFromVirtualKey(192), // #note For now, hardcode to Oemtilde.
-                Alt = _hotkey.Alt,
-                Ctrl = _hotkey.Ctrl,
-                Windows = _hotkey.WindowsKey,
-                Shift = _hotkey.Shift
+            _hotkeyViewModelAlt = new HotkeyViewModel {
+                KeyCode = KeyInterop.KeyFromVirtualKey(192), // #note For now, hardcode to Oemtilde. #TODO Should get from settings.
+                Alt = _hotkeyMain.Alt,
+                Ctrl = _hotkeyMain.Ctrl,
+                Windows = _hotkeyMain.WindowsKey,
+                Shift = _hotkeyMain.Shift
             };
-            HotKeyCheckBox2.IsChecked = Settings.Default.EnableHotKey2;
-            HotkeyPreview2.Text = _hotkeyViewModel2.ToString();
-            HotkeyPreview2.IsEnabled = true; //Settings.Default.EnableHotKey; // #todo Add a separate setting.
+            HotKeyCheckBox2.IsChecked = Settings.Default.EnableHotkeyAlt;
+            HotKeyPreview2.Text = _hotkeyViewModelAlt.ToString();
+            HotKeyPreview2.IsEnabled = true; //Settings.Default.EnableHotKey; // #todo Add a separate setting.
 
             AltTabCheckBox.IsChecked = Settings.Default.AltTabHook;
             AutoSwitch.IsChecked = Settings.Default.AutoSwitch;
@@ -67,19 +72,19 @@ namespace TaskSpace {
             bool closeOptionsWindow = true;
 
             try {
-                _hotkey.Enabled = false;
+                _hotkeyMain.IsEnabled = false;
 
-                if(Settings.Default.EnableHotKey) {
+                if(Settings.Default.EnableHotkeyMain) { // #TODO!!! Also EnableHotkeyAlt.
                     // Change the active hotkey.
-                    _hotkey.Alt = _hotkeyViewModel.Alt;
-                    _hotkey.Shift = _hotkeyViewModel.Shift;
-                    _hotkey.Ctrl = _hotkeyViewModel.Ctrl;
-                    _hotkey.WindowsKey = _hotkeyViewModel.Windows;
-                    _hotkey.KeyCode = (Keys)KeyInterop.VirtualKeyFromKey(_hotkeyViewModel.KeyCode);
-                    _hotkey.Enabled = true;
+                    _hotkeyMain.Alt = _hotkeyViewModelMain.Alt;
+                    _hotkeyMain.Shift = _hotkeyViewModelMain.Shift;
+                    _hotkeyMain.Ctrl = _hotkeyViewModelMain.Ctrl;
+                    _hotkeyMain.WindowsKey = _hotkeyViewModelMain.Windows;
+                    _hotkeyMain.KeyCode = (Keys)KeyInterop.VirtualKeyFromKey(_hotkeyViewModelMain.KeyCode);
+                    _hotkeyMain.IsEnabled = true;
                 }
 
-                _hotkey.SaveSettings();
+                _hotkeyMain.SaveSettings();
             }
             catch(HotkeyAlreadyInUseException) {
                 string boxText = "Sorry! The selected shortcut for activating TaskSpace is in use by another program. "
@@ -88,7 +93,7 @@ namespace TaskSpace {
                 closeOptionsWindow = false;
             }
 
-            Settings.Default.EnableHotKey = HotKeyCheckBox.IsChecked.GetValueOrDefault();
+            Settings.Default.EnableHotkeyMain = HotkeyCheckBox.IsChecked.GetValueOrDefault();
             Settings.Default.AltTabHook = AltTabCheckBox.IsChecked.GetValueOrDefault();
             Settings.Default.AutoSwitch = AutoSwitch.IsChecked.GetValueOrDefault();
             Settings.Default.RunAsAdmin = RunAsAdministrator.IsChecked.GetValueOrDefault();
@@ -100,7 +105,7 @@ namespace TaskSpace {
             }
         }
 
-        private void HotkeyPreview_OnPreviewKeyDown(object sender, KeyEventArgs e) {
+        private void HotKeyPreview_OnPreviewKeyDown(object sender, KeyEventArgs e) {
             // The text box grabs all input.
             e.Handled = true;
 
@@ -116,17 +121,17 @@ namespace TaskSpace {
                 return;
             }
 
-            HotkeyViewModel previewHotkeyModel = new HotkeyViewModel();
-            previewHotkeyModel.Ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-            previewHotkeyModel.Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-            previewHotkeyModel.Alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+            HotkeyViewModel previewHotKeyModel = new HotkeyViewModel();
+            previewHotKeyModel.Ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+            previewHotKeyModel.Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+            previewHotKeyModel.Alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
 
             KeyboardKey winLKey = new KeyboardKey(Keys.LWin);
             KeyboardKey winRKey = new KeyboardKey(Keys.RWin);
-            previewHotkeyModel.Windows = (winLKey.State & 0x8000) == 0x8000 || (winRKey.State & 0x8000) == 0x8000;
-            previewHotkeyModel.KeyCode = key;
+            previewHotKeyModel.Windows = (winLKey.State & 0x8000) == 0x8000 || (winRKey.State & 0x8000) == 0x8000;
+            previewHotKeyModel.KeyCode = key;
 
-            string previewText = previewHotkeyModel.ToString();
+            string previewText = previewHotKeyModel.ToString();
 
             // Jump to the next element if the user presses only the Tab key.
             if(previewText == "Tab") {
@@ -135,7 +140,7 @@ namespace TaskSpace {
             }
 
             HotkeyPreview.Text = previewText;
-            _hotkeyViewModel = previewHotkeyModel;
+            _hotkeyViewModelMain = previewHotKeyModel;
         }
 
         private class HotkeyViewModel {
@@ -181,12 +186,12 @@ namespace TaskSpace {
 
         private void HotkeyPreview_OnGotFocus(object sender, RoutedEventArgs e) {
             // Disable the current hotkey while the hotkey field is active.
-            _hotkey.Enabled = false;
+            _hotkeyMain.IsEnabled = false;
         }
 
         private void HotkeyPreview_OnLostFocus(object sender, RoutedEventArgs e) {
             try {
-                _hotkey.Enabled = true;
+                _hotkeyMain.IsEnabled = true;
             }
             catch(HotkeyAlreadyInUseException) {
                 // It is alright if the hotkey can't be reactivated.
@@ -202,11 +207,11 @@ namespace TaskSpace {
             AutoSwitch.IsChecked = false;
         }
 
-        private void HotKeyCheckBox_Checked(object sender, RoutedEventArgs e) {
+        private void HotkeyCheckBox_Checked(object sender, RoutedEventArgs e) {
             HotkeyPreview.IsEnabled = true;
         }
 
-        private void HotKeyCheckBox_OnUnchecked(object sender, RoutedEventArgs e) {
+        private void HotkeyCheckBox_OnUnchecked(object sender, RoutedEventArgs e) {
             HotkeyPreview.IsEnabled = false;
         }
     }

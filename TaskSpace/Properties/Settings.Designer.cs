@@ -62,12 +62,12 @@ namespace TaskSpace.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("32")]
-        public int HotKey {
+        public int HotkeyMain {
             get {
-                return ((int)(this["HotKey"]));
+                return ((int)(this["HotkeyMain"]));
             }
             set {
-                this["HotKey"] = value;
+                this["HotkeyMain"] = value;
             }
         }
         
@@ -134,12 +134,12 @@ namespace TaskSpace.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool EnableHotKey {
+        public bool EnableHotkeyMain {
             get {
-                return ((bool)(this["EnableHotKey"]));
+                return ((bool)(this["EnableHotkeyMain"]));
             }
             set {
-                this["EnableHotKey"] = value;
+                this["EnableHotkeyMain"] = value;
             }
         }
         
@@ -359,24 +359,6 @@ namespace TaskSpace.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
-<ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <string>explorer.exe</string>
-  <string>totalcmd.exe</string>
-  <string>totalcmd64.exe</string>
-  <string>everything.exe</string>
-</ArrayOfString>")]
-        public global::System.Collections.Specialized.StringCollection Apps_F {
-            get {
-                return ((global::System.Collections.Specialized.StringCollection)(this["Apps_F"]));
-            }
-            set {
-                this["Apps_F"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsd=\"http://www.w3." +
             "org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n  <s" +
             "tring>battle.net.exe</string>\r\n</ArrayOfString>")]
@@ -556,24 +538,24 @@ namespace TaskSpace.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool EnableHotKey2 {
+        public bool EnableHotkeyAlt {
             get {
-                return ((bool)(this["EnableHotKey2"]));
+                return ((bool)(this["EnableHotkeyAlt"]));
             }
             set {
-                this["EnableHotKey2"] = value;
+                this["EnableHotkeyAlt"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("192")]
-        public int HotKey2 {
+        public int HotkeyAlt {
             get {
-                return ((int)(this["HotKey2"]));
+                return ((int)(this["HotkeyAlt"]));
             }
             set {
-                this["HotKey2"] = value;
+                this["HotkeyAlt"] = value;
             }
         }
         
@@ -606,11 +588,12 @@ namespace TaskSpace.Properties {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
 <ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <string>ApplicationFrameHost</string>
-  <string>ShellExperienceHost</string>
-  <string>SystemSettings</string>
-  <string>TextInputHost</string>
-  <string>Microsoft.Notes</string>
+  <string>applicationframehost</string>
+  <string>microsoft.notes</string>
+  <string>rtkuwp</string>
+  <string>shellexperiencehost</string>
+  <string>systemsettings</string>
+  <string>textinputhost</string>
 </ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection BlockList {
             get {
@@ -618,6 +601,25 @@ namespace TaskSpace.Properties {
             }
             set {
                 this["BlockList"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+  <string>C:\Windows\explorer.exe</string>
+  <string>totalcmd.exe</string>
+  <string>totalcmd64.exe</string>
+  <string>everything.exe</string>
+  <string>everything64.exe</string>
+</ArrayOfString>")]
+        public global::System.Collections.Specialized.StringCollection Apps_F {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["Apps_F"]));
+            }
+            set {
+                this["Apps_F"] = value;
             }
         }
     }

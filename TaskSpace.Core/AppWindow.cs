@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.Caching;
@@ -152,6 +153,14 @@ namespace TaskSpace.Core {
 
         // #todo This used to work, but then started showing some non-switchable apps (see new blocked list logic).
         public bool IsAltTabbableWindow(List<string> blockList) {
+#if DEBUG
+            if(this.ProcessName.Contains("uwp", StringComparison.OrdinalIgnoreCase)
+                || this.ProcessName.Contains("rtk", StringComparison.OrdinalIgnoreCase)
+            ) {
+                Debug.WriteLine("target");
+            }
+#endif
+
             if(!Visible) {
                 return false;
             }
@@ -189,7 +198,7 @@ namespace TaskSpace.Core {
             }
 
             // #warning??? DON'T move it before the above checks. But shouldn't matter if blockList doesn't contain process?
-            if(blockList.Contains(this.ProcessName)) {
+            if(blockList.Contains(this.ProcessName.ToLower())) {
                 return false;
             }
 

@@ -10,17 +10,17 @@ using TaskSpace.Core;
 namespace TaskSpace.Core {
     public class UwpWindowIconFinder {
         public Icon Find(AppWindow uwpWindow) {
-            var processPath = uwpWindow.ExecutablePath;
-            var directoryPath = Path.GetDirectoryName(processPath);
-            var directoryName = Path.GetFileName(directoryPath);
-            var manifest = XDocument.Parse(File.ReadAllText(Path.Combine(directoryPath, "AppxManifest.xml")));
-            var ns = manifest.Root.Name.Namespace;
-            var logoPath = manifest.Root.Element(ns + "Properties").Element(ns + "Logo").Value;
-            var name = manifest.Root.Element(ns + "Identity").Attribute("Name").Value;
+            string processPath = uwpWindow.ExecutablePath;
+            string directoryPath = Path.GetDirectoryName(processPath);
+            string directoryName = Path.GetFileName(directoryPath);
+            XDocument manifest = XDocument.Parse(File.ReadAllText(Path.Combine(directoryPath, "AppxManifest.xml")));
+            XNamespace ns = manifest.Root.Name.Namespace;
+            string logoPath = manifest.Root.Element(ns + "Properties").Element(ns + "Logo").Value;
+            string name = manifest.Root.Element(ns + "Identity").Attribute("Name").Value;
 
-            var executable = Path.GetFileName(processPath);
+            string executable = Path.GetFileName(processPath);
 
-            var application = manifest.Root
+            XElement application = manifest.Root
                 .Element(ns + "Applications")
                 .Elements(ns + "Application")
                 .FirstOrDefault(e => executable.Equals(e.Attribute("Executable").Value, StringComparison.InvariantCultureIgnoreCase));
@@ -28,22 +28,22 @@ namespace TaskSpace.Core {
             if(application != null) {
                 XNamespace uapNs = "http://schemas.microsoft.com/appx/manifest/uap/windows10";
 
-                var visualElements = application.Element(uapNs + "VisualElements");
+                XElement visualElements = application.Element(uapNs + "VisualElements");
 
-                var attribute = visualElements.Attribute("Square44x44Logo");
+                XAttribute attribute = visualElements.Attribute("Square44x44Logo");
 
                 if(attribute != null) {
                     logoPath = attribute.Value;
                 }
             }
 
-            var resourcePath = "@{" + directoryName + "?ms-resource://" + name + "/Files/" + logoPath.Replace("\\", "/") + "}";
+            string resourcePath = "@{" + directoryName + "?ms-resource://" + name + "/Files/" + logoPath.Replace("\\", "/") + "}";
 
-            var logoFullPath = ExtractNormalPath(resourcePath);
+            string logoFullPath = ExtractNormalPath(resourcePath);
 
             if(File.Exists(logoFullPath)) {
-                var bitmap = new Bitmap(logoFullPath);
-                var iconHandle = bitmap.GetHicon();
+                Bitmap bitmap = new Bitmap(logoFullPath);
+                nint iconHandle = bitmap.GetHicon();
                 return Icon.FromHandle(iconHandle);
             }
 

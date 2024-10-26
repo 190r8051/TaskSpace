@@ -2,8 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <OutputType>Library</OutputType>
-    <RootNamespace>TaskSwitcher.Core</RootNamespace>
-    <AssemblyName>TaskSwitcher.Core</AssemblyName>
+    <RootNamespace>TaskSpace.Core</RootNamespace>
+    <AssemblyName>TaskSpace.Core</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>

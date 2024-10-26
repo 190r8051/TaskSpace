@@ -65,7 +65,7 @@ namespace TaskSpace.Core {
                         w => new {
                             Window = w,
                             ResultsTitle = Score(w.WindowTitle, filterText),
-                            ResultsProcessTitle = Score(w.ProcessName, processFilterText ?? filterText)
+                            ResultsProcessTitle = Score(w.AppFileNameExt, processFilterText ?? filterText)
                         }
                     )
                     .Where(predicate: r => {
@@ -97,7 +97,7 @@ namespace TaskSpace.Core {
                     w => new {
                         Window = w,
                         ResultsTitle = Score(w.WindowTitle, filterText),
-                        ResultsProcessTitle = Score(w.ProcessName, processFilterText ?? filterText)
+                        ResultsProcessTitle = Score(w.AppFileNameExt, processFilterText ?? filterText)
                     }
                 )
                 .Where(r => {

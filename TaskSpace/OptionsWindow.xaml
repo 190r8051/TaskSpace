@@ -11,16 +11,16 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <StackPanel Margin="5,5,5,5">
-            <CheckBox Name="HotKeyCheckBox" Margin="5,5,5,1" Checked="HotKeyCheckBox_Checked" Unchecked="HotKeyCheckBox_OnUnchecked">Activate TaskSpace with this shortcut:</CheckBox>
+            <CheckBox Name="HotkeyCheckBox" Margin="5,5,5,1" Checked="HotkeyCheckBox_Checked" Unchecked="HotkeyCheckBox_OnUnchecked">Activate TaskSpace with this shortcut:</CheckBox>
             <TextBox Name="HotkeyPreview" Margin="25,5,0,10"
-                     PreviewKeyDown="HotkeyPreview_OnPreviewKeyDown"
+                     PreviewKeyDown="HotKeyPreview_OnPreviewKeyDown"
                      GotFocus="HotkeyPreview_OnGotFocus"
                      LostFocus="HotkeyPreview_OnLostFocus"
                      Width="150"
                      HorizontalAlignment="Left"/>
-            <CheckBox Name="HotKeyCheckBox2" Margin="5,5,5,1" Checked="HotKeyCheckBox_Checked" Unchecked="HotKeyCheckBox_OnUnchecked">Show same apps with this shortcut:</CheckBox>
-            <TextBox Name="HotkeyPreview2" Margin="25,5,0,10"
-                     PreviewKeyDown="HotkeyPreview_OnPreviewKeyDown"
+            <CheckBox Name="HotKeyCheckBox2" Margin="5,5,5,1" Checked="HotkeyCheckBox_Checked" Unchecked="HotkeyCheckBox_OnUnchecked">Show same apps with this shortcut:</CheckBox>
+            <TextBox Name="HotKeyPreview2" Margin="25,5,0,10"
+                     PreviewKeyDown="HotKeyPreview_OnPreviewKeyDown"
                      GotFocus="HotkeyPreview_OnGotFocus"
                      LostFocus="HotkeyPreview_OnLostFocus"
                      Width="150"

@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace TaskSpace.Core {
@@ -22,11 +23,21 @@ namespace TaskSpace.Core {
             }
         }
 
-        public string ProcessName {
+        public string AppFilePath {
             get {
-                return this.AppWindow?.ProcessName ?? "ProcessName TEST";
+                string retVal = this.AppWindow?.ExecutablePath ?? "AppFilePath TEST";
+                return retVal;
             }
         }
+
+        public string AppFileNameExt {
+            get {
+                string retVal = this.AppWindow?.ProcessName ?? "ProcessName TEST";
+                return retVal;
+            }
+        }
+
+        // #todo Also AppFileName, i.e. without Ext?
         #endregion IWindowText Members
 
         #region Bindable Properties
@@ -45,6 +56,9 @@ namespace TaskSpace.Core {
             }
         }
 
+        // #TODO!!! Instead of this being a special case,
+        // every app window can also be a launch-command
+        // (provided the appFilePath is detected and saved).
         private string _launchCommand = string.Empty;
         public string LaunchCommand {
             get { return _launchCommand; }
@@ -55,16 +69,33 @@ namespace TaskSpace.Core {
         }
 
         /// <summary>
-        /// The letter mapped ordinal (0-based) inside the app list,
+        /// The ordinal mapped (0-based) inside the app list,
         /// e.g. if 'M' is mapped to app list ["spotify.exe", "aimp.exe"] and the current app is "aimp.exe",
         /// then the value is 1.
+        /// #note This is different but directly mapped to the UI 1-based ordinals (_indexString/IndexString).
         /// </summary>
-        private int _letterMappedOrdinal;
-        public int LetterMappedOrdinal {
-            get { return _letterMappedOrdinal; }
+        private int _ordinalMapped0;
+        public int OrdinalMapped0 {
+            get { return _ordinalMapped0; }
             set {
-                _letterMappedOrdinal = value;
-                NotifyOfPropertyChange(() => LetterMappedOrdinal);
+                _ordinalMapped0 = value;
+                NotifyOfPropertyChange(() => OrdinalMapped0); // #cut? This is not bound to UI.
+            }
+        }
+
+        // The 1-based index string.
+        // #note This is different but directly mapped to the non-UI 0-based ordinals (_ordinalMapped0/OrdinalMapped0).
+        // #warning If renaming, make sure to update below in XAML:
+        // ```
+        // <!-- OrdinalMapped1. -->
+        // <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=OrdinalMapped1}"
+        // ```
+        private string _ordinalMapped1;
+        public string OrdinalMapped1 {
+            get { return _ordinalMapped1; }
+            set {
+                _ordinalMapped1 = value;
+                NotifyOfPropertyChange(() => OrdinalMapped1); // Notify the UI.
             }
         }
 
@@ -85,16 +116,6 @@ namespace TaskSpace.Core {
             set {
                 _letterBound = value;
                 NotifyOfPropertyChange(() => LetterBound);
-            }
-        }
-
-        // The 1-based index string.
-        private string _indexString;
-        public string IndexString {
-            get { return _indexString; }
-            set {
-                _indexString = value;
-                NotifyOfPropertyChange(() => IndexString);
             }
         }
 
@@ -169,7 +190,7 @@ namespace TaskSpace.Core {
             // #todo Param checking.
             this.AppWindow = appWindow;
             this.LetterMapped = letterMapped;
-            this.LetterMappedOrdinal = letterMappedOrdinal;
+            this.OrdinalMapped0 = letterMappedOrdinal;
             this.LetterBound = letterBound;
         }
         #endregion Constructors
