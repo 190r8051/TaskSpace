@@ -11,7 +11,7 @@
     <Setting Name="WindowsKey" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="HotKey" Type="System.Int32" Scope="User">
+    <Setting Name="HotkeyMain" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">32</Value>
     </Setting>
     <Setting Name="Alt" Type="System.Boolean" Scope="User">
@@ -29,7 +29,7 @@
     <Setting Name="AutoSwitch" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="EnableHotKey" Type="System.Boolean" Scope="User">
+    <Setting Name="EnableHotkeyMain" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Apps_E" Type="System.Collections.Specialized.StringCollection" Scope="User">
@@ -130,15 +130,6 @@
     <Setting Name="Apps_D" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="Apps_F" Type="System.Collections.Specialized.StringCollection" Scope="User">
-      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
-&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;string&gt;explorer.exe&lt;/string&gt;
-  &lt;string&gt;totalcmd.exe&lt;/string&gt;
-  &lt;string&gt;totalcmd64.exe&lt;/string&gt;
-  &lt;string&gt;everything.exe&lt;/string&gt;
-&lt;/ArrayOfString&gt;</Value>
-    </Setting>
     <Setting Name="Apps_G" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
 &lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
@@ -209,10 +200,10 @@
     <Setting Name="IsFocusNextEnabled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="EnableHotKey2" Type="System.Boolean" Scope="User">
+    <Setting Name="EnableHotkeyAlt" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="HotKey2" Type="System.Int32" Scope="User">
+    <Setting Name="HotkeyAlt" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">192</Value>
     </Setting>
     <Setting Name="Folder_0_Power" Type="System.Collections.Specialized.StringCollection" Scope="User">
@@ -225,11 +216,22 @@
     <Setting Name="BlockList" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
 &lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;string&gt;ApplicationFrameHost&lt;/string&gt;
-  &lt;string&gt;ShellExperienceHost&lt;/string&gt;
-  &lt;string&gt;SystemSettings&lt;/string&gt;
-  &lt;string&gt;TextInputHost&lt;/string&gt;
-  &lt;string&gt;Microsoft.Notes&lt;/string&gt;
+  &lt;string&gt;applicationframehost&lt;/string&gt;
+  &lt;string&gt;microsoft.notes&lt;/string&gt;
+  &lt;string&gt;rtkuwp&lt;/string&gt;
+  &lt;string&gt;shellexperiencehost&lt;/string&gt;
+  &lt;string&gt;systemsettings&lt;/string&gt;
+  &lt;string&gt;textinputhost&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="Apps_F" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
+  &lt;string&gt;C:\Windows\explorer.exe&lt;/string&gt;
+  &lt;string&gt;totalcmd.exe&lt;/string&gt;
+  &lt;string&gt;totalcmd64.exe&lt;/string&gt;
+  &lt;string&gt;everything.exe&lt;/string&gt;
+  &lt;string&gt;everything64.exe&lt;/string&gt;
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
   </Settings>

@@ -2,14 +2,11 @@
 using NUnit.Framework;
 using TaskSpace.Core.Matchers;
 
-namespace TaskSpace.Core.UnitTests
-{
+namespace TaskSpace.Core.UnitTests {
     [TestFixture]
-    public class StartsWithMatcherTests
-    {
+    public class StartsWithMatcherTests {
         [Test]
-        public void Evaluate_InputStartsWithPattern_ResultIsMatched()
-        {
+        public void Evaluate_InputStartsWithPattern_ResultIsMatched() {
             string input = "google chrome";
             string pattern = "google";
 
@@ -19,8 +16,7 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_InputStartsWithPattern_ScoreIsFour()
-        {
+        public void Evaluate_InputStartsWithPattern_ScoreIsFour() {
             string input = "google chrome";
             string pattern = "google";
 
@@ -30,8 +26,7 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_InputStartsWithPattern_FirstStringPartIsMatch()
-        {
+        public void Evaluate_InputStartsWithPattern_FirstStringPartIsMatch() {
             string input = "google chrome";
             string pattern = "google";
 
@@ -42,8 +37,7 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_InputStartsWithPattern_SecondStringPartIsNotMatch()
-        {
+        public void Evaluate_InputStartsWithPattern_SecondStringPartIsNotMatch() {
             string input = "google chrome";
             string pattern = "google";
 
@@ -54,22 +48,19 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_NullInput_ReturnsNotMatchingResult()
-        {
+        public void Evaluate_NullInput_ReturnsNotMatchingResult() {
             MatchResult result = Evaluate(null, "google");
             Assert.That(result.Matched, Is.False);
         }
 
         [Test]
-        public void Evaluate_NullPattern_ReturnsNotMatchingResult()
-        {
+        public void Evaluate_NullPattern_ReturnsNotMatchingResult() {
             MatchResult result = Evaluate("google chrome", null);
             Assert.That(result.Matched, Is.False);
         }
 
         [Test]
-        public void Evaluate_NullPattern_ReturnsOneNonMatchingStringPart()
-        {
+        public void Evaluate_NullPattern_ReturnsOneNonMatchingStringPart() {
             MatchResult result = Evaluate("google chrome", null);
             Assert.That(result.StringParts.Count(), Is.EqualTo(1));
             Assert.That(result.StringParts.First().Value, Is.EqualTo("google chrome"));
@@ -77,15 +68,13 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_InputContainsPattern_ReturnsNotMatchingResult()
-        {
+        public void Evaluate_InputContainsPattern_ReturnsNotMatchingResult() {
             MatchResult result = Evaluate("google chrome", "chrome");
             Assert.That(result.Matched, Is.False);
         }
 
         [Test]
-        public void Evaluate_InputContainsPattern_ReturnsOneNonMatchingStringPart()
-        {
+        public void Evaluate_InputContainsPattern_ReturnsOneNonMatchingStringPart() {
             MatchResult result = Evaluate("google chrome", "chrome");
             Assert.That(result.StringParts.Count(), Is.EqualTo(1));
             Assert.That(result.StringParts.First().Value, Is.EqualTo("google chrome"));
@@ -93,15 +82,13 @@ namespace TaskSpace.Core.UnitTests
         }
 
         [Test]
-        public void Evaluate_InputStartsWithPattern_CasingIsNotChanged()
-        {
+        public void Evaluate_InputStartsWithPattern_CasingIsNotChanged() {
             MatchResult result = Evaluate("Google Chrome", "google");
             Assert.That(result.StringParts[0].Value, Is.EqualTo("Google"));
             Assert.That(result.StringParts[1].Value, Is.EqualTo(" Chrome"));
         }
 
-        private static MatchResult Evaluate(string input, string pattern)
-        {
+        private static MatchResult Evaluate(string input, string pattern) {
             StartsWithMatcher matcher = new StartsWithMatcher();
             return matcher.Evaluate(input, pattern);
         }

@@ -2,8 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <OutputType>Library</OutputType>
-    <RootNamespace>TaskSwitcher.Core.UnitTests</RootNamespace>
-    <AssemblyName>TaskSwitcher.Core.UnitTests</AssemblyName>
+    <RootNamespace>TaskSpace.Core.UnitTests</RootNamespace>
+    <AssemblyName>TaskSpace.Core.UnitTests</AssemblyName>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyTitle>Core.UnitTests</AssemblyTitle>
@@ -16,9 +16,9 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Core\Core.csproj" />
+    <PackageReference Include="NUnit" Version="2.6.3" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="2.6.3" />
+    <ProjectReference Include="..\TaskSpace.Core\TaskSpace.Core.csproj" />
   </ItemGroup>
 </Project>

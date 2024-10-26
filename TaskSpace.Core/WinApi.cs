@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace TaskSpace.Core {
     internal static class WinApi {
-        
+
         public enum WindowLong {
             ExStyle = -20,
             Style = -16

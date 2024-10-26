@@ -10,27 +10,136 @@
     >
 
     <Window.CommandBindings>
-        <CommandBinding Command="local:MainWindow.CloseWindowCommand"
-                        Executed="CloseWindow" />
-        <CommandBinding Command="local:MainWindow.SwitchToWindowCommand"
-                        Executed="OnEnterPressed" />
-        <CommandBinding Command="local:MainWindow.ScrollListUpCommand"
-                        Executed="ScrollListUp" />
-        <CommandBinding Command="local:MainWindow.ScrollListDownCommand"
-                        Executed="ScrollListDown" />
-        <CommandBinding Command="local:MainWindow.ScrollListHomeCommand" 
-                        Executed="ScrollListHome" />
-        <CommandBinding Command="local:MainWindow.ScrollListEndCommand" 
-                        Executed="ScrollListEnd" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_ScrollListUp" Executed="ScrollListUp" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_ScrollListDown" Executed="ScrollListDown" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_ScrollListHome" Executed="ScrollListHome" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_ScrollListEnd" Executed="ScrollListEnd" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_LaunchWindow" Executed="LaunchWindowAsync" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" Executed="LaunchAdminWindowAsync" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_CloseWindow" Executed="CloseWindowAsync" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_KillWindow" Executed="KillWindowAsync" />
+        <CommandBinding Command="local:MainWindow.RoutedUICommand_SwitchToWindow" Executed="SwitchToWindow" />
     </Window.CommandBindings>
 
     <Window.InputBindings>
-        <KeyBinding Command="local:MainWindow.CloseWindowCommand" Key="Enter" Modifiers="Ctrl" />
-        <KeyBinding Command="local:MainWindow.CloseWindowCommand" Key="W" Modifiers="Ctrl" />
-        <KeyBinding Command="local:MainWindow.ScrollListUpCommand" Key="Up" />
-        <KeyBinding Command="local:MainWindow.ScrollListDownCommand" Key="Down" />
-        <KeyBinding Command="local:MainWindow.ScrollListHomeCommand" Key="Home" />
-        <KeyBinding Command="local:MainWindow.ScrollListEndCommand" Key="End" />
+        <KeyBinding Key="Up" Command="local:MainWindow.RoutedUICommand_ScrollListUp" />
+        <KeyBinding Key="Down" Command="local:MainWindow.RoutedUICommand_ScrollListDown" />
+        <KeyBinding Key="Home" Command="local:MainWindow.RoutedUICommand_ScrollListHome" />
+        <KeyBinding Key="End" Command="local:MainWindow.RoutedUICommand_ScrollListEnd" />
+
+        <!--<KeyBinding Modifiers="Alt" Key="F4" Command="{Binding Path=ToDelegateCommandThatExecuteNothing}" />-->
+        <!--<KeyBinding Modifiers="Alt" Key="F4" Command="{Binding Path=ToDelegateCommandThatExecuteNothing}" />-->
+
+        <!--<KeyBinding Command="local:MainWindow.CloseWindowCommand" Key="Enter" Modifiers="Ctrl" />-->
+        <!--<KeyBinding Command="local:MainWindow.CloseWindowCommand" Key="W" Modifiers="Ctrl" />-->
+
+        <KeyBinding Modifiers="Ctrl" Key="A" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="B" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="C" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="D" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="E" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="F" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="G" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="H" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="I" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="J" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="K" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="L" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="M" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="N" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="O" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="P" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="Q" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="R" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="S" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="T" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="U" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="V" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="W" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="X" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="Y" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+        <KeyBinding Modifiers="Ctrl" Key="Z" Command="local:MainWindow.RoutedUICommand_LaunchWindow" />
+
+        <KeyBinding Modifiers="Ctrl+Shift" Key="A" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="B" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="C" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="D" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="E" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="F" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="G" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="H" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="I" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="J" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="K" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="L" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="M" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="N" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="O" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="P" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="Q" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="R" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="S" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="T" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="U" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="V" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="W" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="X" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="Y" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        <KeyBinding Modifiers="Ctrl+Shift" Key="Z" Command="local:MainWindow.RoutedUICommand_LaunchAdminWindow" />
+        
+        <KeyBinding Modifiers="Alt" Key="A" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="B" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="C" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="D" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="E" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="F" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="G" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="H" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="I" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="J" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="K" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="L" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="M" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="N" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="O" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="P" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="Q" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="R" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="S" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="T" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="U" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="V" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="W" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="X" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="Y" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+        <KeyBinding Modifiers="Alt" Key="Z" Command="local:MainWindow.RoutedUICommand_CloseWindow" />
+
+        <KeyBinding Modifiers="Alt+Shift" Key="A" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="B" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="C" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="D" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="E" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="F" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="G" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="H" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="I" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="J" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="K" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="L" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="M" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="N" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="O" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="P" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="Q" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="R" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="S" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="T" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="U" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="V" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="W" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="X" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="Y" Command="local:MainWindow.RoutedUICommand_KillWindow" />
+        <KeyBinding Modifiers="Alt+Shift" Key="Z" Command="local:MainWindow.RoutedUICommand_KillWindow" />
     </Window.InputBindings>
 
     <Window.Resources>
@@ -85,13 +194,13 @@
                          VerticalContentAlignment="Center" BorderBrush="{x:Null}" BorderThickness="0"
                     >
                     <TextBox.InputBindings>
-                        <!-- For now, leave these here. Would it be better to route them upward? -->
-                        <KeyBinding Command="local:MainWindow.ScrollListUpCommand" Key="Up" />
-                        <KeyBinding Command="local:MainWindow.ScrollListDownCommand" Key="Down" />
-                        <KeyBinding Command="local:MainWindow.ScrollListUpCommand" Key="Tab" Modifiers="Shift" />
-                        <KeyBinding Command="local:MainWindow.ScrollListDownCommand" Key="Tab" />
-                        <KeyBinding Command="local:MainWindow.ScrollListHomeCommand" Key="Home" />
-                        <KeyBinding Command="local:MainWindow.ScrollListEndCommand" Key="End" />
+                        <!-- #legacy[From Switcheroo.] For now, leave these here. Would it be better to route them upward? -->
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListUp" Key="Up" />
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListDown" Key="Down" />
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListUp" Key="Tab" Modifiers="Shift" />
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListDown" Key="Tab" />
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListHome" Key="Home" />
+                        <KeyBinding Command="local:MainWindow.RoutedUICommand_ScrollListEnd" Key="End" />
                     </TextBox.InputBindings>
                 </TextBox>
                 <TextBlock Name="SearchIcon"
@@ -226,8 +335,8 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- IndexString. -->
-                                <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=IndexString}"
+                                <!-- OrdinalMapped1. -->
+                                <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=OrdinalMapped1}"
                                            Grid.Row="0" Grid.Column="2" Margin="10,0" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
                                     <TextBlock.Foreground>
                                         <SolidColorBrush
