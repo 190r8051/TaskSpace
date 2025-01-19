@@ -8,6 +8,7 @@ using System.Runtime.Caching;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+using System.Windows.Media.Imaging;
 using ManagedWinapi.Windows;
 using static TaskSpace.Core.WinApi;
 
@@ -30,37 +31,64 @@ namespace TaskSpace.Core {
             }
         }
 
-        //public Icon LargeWindowIcon => new WindowIconFinder().Find(this, WindowIconSize.Large);
+        bool _hasCustomIcon = false;
 
-        //public Icon SmallWindowIcon => new WindowIconFinder().Find(this, WindowIconSize.Small);
+        private Icon _icon; // #TODO Should have large and small?
 
         public Icon LargeWindowIcon {
             get {
-                if(IsApplicationFrameWindow()) {
-                    AppWindow underlyingUwpWindow = GetUnderlyingUwpWindow();
-                    return underlyingUwpWindow == null ? null : new UwpWindowIconFinder().Find(underlyingUwpWindow);
+                if(_hasCustomIcon) {
+                    return _icon;
                 }
+                else {
+                    if(IsApplicationFrameWindow()) {
+                        AppWindow underlyingUwpWindow = GetUnderlyingUwpWindow();
+                        return underlyingUwpWindow == null ? null : new UwpWindowIconFinder().Find(underlyingUwpWindow);
+                    }
 
-                return new WindowIconFinder().Find(this, WindowIconSize.Large);
+                    return new WindowIconFinder().Find(this, WindowIconSize.Large);
+                }
             }
         }
 
         public Icon SmallWindowIcon {
             get {
-                if(IsApplicationFrameWindow()) {
-                    AppWindow underlyingUwpWindow = GetUnderlyingUwpWindow();
-                    return underlyingUwpWindow == null ? null : new UwpWindowIconFinder().Find(underlyingUwpWindow);
+                if(_hasCustomIcon) {
+                    return _icon;
                 }
+                else {
+                    if(IsApplicationFrameWindow()) {
+                        AppWindow underlyingUwpWindow = GetUnderlyingUwpWindow();
+                        return underlyingUwpWindow == null ? null : new UwpWindowIconFinder().Find(underlyingUwpWindow);
+                    }
 
-                return new WindowIconFinder().Find(this, WindowIconSize.Small);
+                    return new WindowIconFinder().Find(this, WindowIconSize.Small);
+                }
             }
         }
 
-        public string ExecutablePath => GetExecutablePath(Process.Id);
+        public string ExecutablePath {
+            get {
+                if (this.Process.Id == IntPtr.Zero) {
+                    // Return empty string for the "Idle" process (instead of crashing below).
+                    return string.Empty;
+                }
+
+                string retVal = GetExecutablePath(this.Process.Id);
+                return retVal;
+            }
+        }
         #endregion Properties
 
         #region Constructor
-        public AppWindow(IntPtr HWnd) : base(HWnd) {
+        public AppWindow(IntPtr hWnd) : base(hWnd) {
+            _hasCustomIcon = false;
+        }
+
+        // New constructor that accepts the custom icon.
+        public AppWindow(IntPtr hWnd, Icon icon) : base(hWnd) {
+            _hasCustomIcon = true;
+            _icon = icon;
         }
         #endregion Constructor
 
@@ -88,7 +116,10 @@ namespace TaskSpace.Core {
         public AppWindow Owner {
             get {
                 IntPtr ownerHandle = WinApi.GetWindow(HWnd, WinApi.GetWindowCmd.GW_OWNER);
-                if(ownerHandle == IntPtr.Zero) return null;
+                if(ownerHandle == IntPtr.Zero) {
+                    return null;
+                }
+
                 return new AppWindow(ownerHandle);
             }
         }
@@ -257,7 +288,7 @@ namespace TaskSpace.Core {
 
         private bool IsToolWindow() {
             return (ExtendedStyle & WindowExStyleFlags.TOOLWINDOW) == WindowExStyleFlags.TOOLWINDOW
-                    || (Style & WindowStyleFlags.TOOLWINDOW) == WindowStyleFlags.TOOLWINDOW;
+                || (Style & WindowStyleFlags.TOOLWINDOW) == WindowStyleFlags.TOOLWINDOW;
         }
 
         private bool IsAppWindow() {
@@ -349,7 +380,9 @@ namespace TaskSpace.Core {
         }
 
         // This method only works on ```Windows Vista <= Windows```.
-        private static string GetExecutablePath(int processId) {
+        private static string GetExecutablePath(
+            int processId
+        ) {
             StringBuilder buffer = new StringBuilder(1024);
             IntPtr hprocess = WinApi.OpenProcess(WinApi.ProcessAccess.QueryLimitedInformation, false, processId);
             if(hprocess == IntPtr.Zero) {

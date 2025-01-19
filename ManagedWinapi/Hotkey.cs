@@ -66,7 +66,6 @@ namespace ManagedWinapi {
         /// </summary>
         public Keys KeyCode {
             get => _keyCode;
-
             set {
                 _keyCode = value;
                 UpdateHotkey(true);
@@ -78,7 +77,10 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Ctrl {
             get => _ctrl;
-            set { _ctrl = value; UpdateHotkey(true); }
+            set {
+                _ctrl = value;
+                UpdateHotkey(true);
+            }
         }
 
         /// <summary>
@@ -86,7 +88,10 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Alt {
             get => _alt;
-            set { _alt = value; UpdateHotkey(true); }
+            set {
+                _alt = value;
+                UpdateHotkey(true);
+            }
         }
 
         /// <summary>
@@ -94,7 +99,10 @@ namespace ManagedWinapi {
         /// </summary>
         public bool Shift {
             get => _shift;
-            set { _shift = value; UpdateHotkey(true); }
+            set {
+                _shift = value;
+                UpdateHotkey(true);
+            }
         }
 
         /// <summary>
@@ -104,11 +112,17 @@ namespace ManagedWinapi {
         /// </summary>
         public bool WindowsKey {
             get => _windows;
-            set { _windows = value; UpdateHotkey(true); }
+            set {
+                _windows = value;
+                UpdateHotkey(true);
+            }
         }
 
         void nw_EventHandler(ref Message m, ref bool handled) {
-            if(handled) return;
+            if(handled) {
+                return;
+            }
+
             if(m.Msg != WM_HOTKEY || m.WParam.ToInt32() != _hotkeyIndex) {
                 return;
             }
@@ -121,7 +135,9 @@ namespace ManagedWinapi {
         /// Releases all resources used by the System.ComponentModel.Component.
         /// </summary>
         /// <param name="disposing">Whether to dispose managed resources.</param>
-        protected override void Dispose(bool disposing) {
+        protected override void Dispose(
+            bool disposing
+        ) {
             _isDisposed = true;
             UpdateHotkey(false);
             EventDispatchingNativeWindow.Instance.EventHandler -= nw_EventHandler;

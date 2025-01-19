@@ -310,7 +310,8 @@ namespace TaskSpace.Properties {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
 <ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <string>msedge.exe</string>
+  <string>C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</string>
+  <string>C:\Program Files (x86)\Microsoft\Edge Beta\Application\msedge.exe</string>
   <string>chrome.exe</string>
   <string>firefox.exe</string>
   <string>vivaldi.exe</string>
@@ -561,8 +562,12 @@ namespace TaskSpace.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsd=\"http://www.w3." +
-            "org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" />")]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+  <string>""lock"", ""L"","",""</string>
+  <string>""sleep"", ""S"","".""</string>
+  <string>""restart"", ""R"",""/""</string>
+</ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection Folder_0_Power {
             get {
                 return ((global::System.Collections.Specialized.StringCollection)(this["Folder_0_Power"]));
@@ -574,7 +579,7 @@ namespace TaskSpace.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("`")]
+        [global::System.Configuration.DefaultSettingValueAttribute(",")]
         public char Folder_0_Key {
             get {
                 return ((char)(this["Folder_0_Key"]));

@@ -19,6 +19,7 @@ namespace TaskSpace.Core {
                     xDocument.Root.Add(new XText(stringPart.Value));
                 }
             }
+
             string retVal = string.Join(string.Empty, xDocument.Root.Nodes().Select(x => x.ToString()).ToArray());
             return retVal;
         }

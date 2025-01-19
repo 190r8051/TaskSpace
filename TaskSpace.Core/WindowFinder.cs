@@ -5,12 +5,18 @@ using System.Linq;
 
 namespace TaskSpace.Core {
     public class WindowFinder {
-        public List<AppWindowViewModel> GetAndMapWindows(
+        public static List<AppWindowViewModel> GetAndMapWindows(
             List<string> blockList
-            , Dictionary<char, List<(string, string)>> settingsCharToAppList
+            , Dictionary<char, List<AppWindowViewModel>> settingsCharToAppList
             , bool isAutoMappingEnabled = false
+            , bool isPowerMenuEnabled = false
         ) {
-            Dictionary<char, (bool, List<(string, string)>)> dynamicCharToAppList = [];
+            // The schema is:
+            // - The dictionary key is char, e.g. 'V' for "Visual Studio" etc.
+            // - The dictionary value is a tuple:
+            //      - IsFoundInSettings: if true, this app is found in the settings (the char will not be auto-mapped to non-mapped apps).
+            //      - DynamicApps: the apps mapped to this char.
+            Dictionary<char, (bool IsFoundInSettings, List<AppWindowViewModel> DynamicApps)> dynamicCharToAppList = [];
 
             // Get the valid windows.
             IEnumerable<AppWindow> appWindows = ManagedWinapi.Windows.SystemWindow
@@ -32,34 +38,70 @@ namespace TaskSpace.Core {
                 bool isFound = false;
 
                 // #todo Some processes might not have ".exe"?
-                string processWithExtension = $"{appWindow.ProcessName}.exe".ToLower();
-                char processFirstCharLowercase = char.ToLower(processWithExtension.First());
-                char processFirstCharUppercase = char.ToUpper(processWithExtension.First());
+                string processFilePath = string.Empty;
+                try {
+                    processFilePath = $"{appWindow.Process.MainModule.FileName}.exe".ToLower();
+                }
+                catch {
+                }
+
+                string processFileNameWithExt = $"{appWindow.ProcessName}.exe".ToLower();
+                char processFirstCharLowercase = char.ToLower(processFileNameWithExt.First());
+                char processFirstCharUppercase = char.ToUpper(processFileNameWithExt.First());
 
                 // Attempt to find the letter mapping from settingsCharToAppList.
+                // #todo #perf In LoadSettings, pivot, e.g. can input key "devenv.exe" and get the mapped char 'V' (then can look-up here).
                 for(int i = (int)'A'; i <= (int)'Z'; i++) {
                     char letter = (char)i;
 
-                    if(settingsCharToAppList.TryGetValue(letter, out List<(string, string)> appList)) {
-                        int ordinal = appList.FindIndex(x => x.Item1 == processWithExtension);
+#if DEBUG
+                    if(letter == 'B') {
+                        Debug.WriteLine("TARGET");
+                    }
+#endif
 
-                        if(ordinal != -1) {
-                            (string appNameExtLocal, string appFilePath) app = appList[ordinal];
+                    if(settingsCharToAppList.TryGetValue(letter, out List<AppWindowViewModel> appList)) {
+                        // #warning This look-up relies on settings apps having IsLaunchCommand=true (so that the backing field is used, not the property with extra logic).
+                        //int ordinal1 = appList.FindIndex(x => x.AppFilePath == processFilePath);
+
+                        //if(ordinal1 != -1) {
+                        //    AppWindowViewModel app = appList[ordinal1];
+
+                        //    // Found, so add to dynamic.
+                        //    if(!dynamicCharToAppList.ContainsKey(letter)) {
+                        //        // #note Item1 (IsFoundInSettings) is true, meaning this char mapping is static from settings (and will be NOT re-used for any dynamic apps).
+                        //        (bool, List<AppWindowViewModel>) val = (true, new List<AppWindowViewModel>());
+                        //        dynamicCharToAppList[letter] = val;
+                        //    }
+                        //    dynamicCharToAppList[letter].DynamicApps.Add(app);
+
+                        //    letterMappedOrdinal = ordinal1;
+                        //    letterMapped = letter.ToString();
+                        //    letterBound = letter.ToString();
+                        //    isFound = true;
+                        //    break;
+                        //}
+                        //else {
+                        int ordinal2 = appList.FindIndex(x => x.AppFileNameWithExt == processFileNameWithExt);
+
+                        if(ordinal2 != -1) {
+                            AppWindowViewModel app = appList[ordinal2];
 
                             // Found, so add to dynamic.
                             if(!dynamicCharToAppList.ContainsKey(letter)) {
-                                // #note Item1 is true, meaning this is static (and will be NOT re-used for any dynamic apps).
-                                (bool, List<(string, string)>) val = (true, new List<(string, string)>());
+                                // #note Item1 (IsFoundInSettings) is true, meaning this char mapping is static from settings (and will be NOT re-used for any dynamic apps).
+                                (bool, List<AppWindowViewModel>) val = (true, new List<AppWindowViewModel>());
                                 dynamicCharToAppList[letter] = val;
                             }
-                            dynamicCharToAppList[letter].Item2.Add(app);
+                            dynamicCharToAppList[letter].DynamicApps.Add(app);
 
-                            letterMappedOrdinal = ordinal;
+                            letterMappedOrdinal = ordinal2;
                             letterMapped = letter.ToString();
                             letterBound = letter.ToString();
                             isFound = true;
                             break;
                         }
+                        //}
                     }
                 }
 
@@ -68,6 +110,7 @@ namespace TaskSpace.Core {
                 }
 
                 // Create and add the AppWindowViewModel instance to the list.
+                // #note This is an independent dynamic copy (i.e. NOT the static one from the settings).
                 AppWindowViewModel appWindowViewModel = new(appWindow, letterMapped, letterMappedOrdinal, letterBound);
 
                 appWindowViewModels.Add(appWindowViewModel);
@@ -80,13 +123,13 @@ namespace TaskSpace.Core {
 
             foreach(int indexOfUnmapped in indexesOfUnmapped) {
                 // #todo Some processes might not have ".exe"?
-                string appNameExt = $"{appWindowViewModels[indexOfUnmapped].AppFileNameExt}.exe".ToLower();
+                string appNameExt = $"{appWindowViewModels[indexOfUnmapped].AppFileNameWithExt}.exe".ToLower();
                 string appFileName = $"{appWindowViewModels[indexOfUnmapped].AppFilePath}.exe".ToLower();
 
-                char processFirstCharLowercase = char.ToLower(appWindowViewModels[indexOfUnmapped].AppFileNameExt.First());
-                char processFirstCharUppercase = char.ToUpper(appWindowViewModels[indexOfUnmapped].AppFileNameExt.First());
+                char processFirstCharLowercase = char.ToLower(appWindowViewModels[indexOfUnmapped].AppFileNameWithExt.First());
+                char processFirstCharUppercase = char.ToUpper(appWindowViewModels[indexOfUnmapped].AppFileNameWithExt.First());
 
-                IEnumerable<string> processNameWords = appWindowViewModels[indexOfUnmapped].AppFileNameExt.SplitCamelCaseWords();
+                IEnumerable<string> processNameWords = appWindowViewModels[indexOfUnmapped].AppFileNameWithExt.SplitCamelCaseWords();
                 char? processSecondWordFirstCharLowercase = 2 <= processNameWords.Count() ? char.ToLower(processNameWords.ElementAt(1).First()) : null;
                 char? processSecondWordFirstCharUppercase = 2 <= processNameWords.Count() ? char.ToUpper(processNameWords.ElementAt(1).First()) : null;
 
@@ -100,16 +143,20 @@ namespace TaskSpace.Core {
                             ? processFirstCharLowercase
                             : processFirstCharUppercase;
 
-                        // #note LetterMapped and LetterMappedOrdinal remain as-is.
+                        // #note LetterMappedOrdinal remain as-is.
                         appWindowViewModels[indexOfUnmapped].LetterBound = letter.ToString();
+                        appWindowViewModels[indexOfUnmapped].LetterMapped = letter.ToString();
 
                         // Found, so add to dynamic.
                         if(!dynamicCharToAppList.ContainsKey(letter)) {
                             // #note Item1 is false, meaning this is dynamic (and will be re-used for any other dynamic apps).
-                            (bool, List<(string, string)>) val = (false, new List<(string, string)>());
+                            //(bool, List<(string, string)>) val = (false, new List<(string, string)>());
+                            (bool, List<AppWindowViewModel>) val = (false, new List<AppWindowViewModel>());
                             dynamicCharToAppList[letter] = val;
                         }
-                        dynamicCharToAppList[letter].Item2.Add((appNameExt, string.Empty)); // #TODO!!!
+
+                        dynamicCharToAppList[letter].Item2.Add(appWindowViewModels[indexOfUnmapped]); // #TODO??? Should clear the LetterBound and LetterMapped?
+                        //dynamicCharToAppList[letter].Item2.Add((appNameExt, string.Empty)); // #TODO!!!
                     }
                     else if(2 <= processNameWords.Count()
                         && (
@@ -128,12 +175,25 @@ namespace TaskSpace.Core {
                         // Found, so add to dynamic.
                         if(!dynamicCharToAppList.ContainsKey(letter)) {
                             // #note Item1 is false, meaning this is dynamic (and will be re-used for any other dynamic apps).
-                            (bool, List<(string, string)>) val = (false, new List<(string, string)>());
+                            //(bool, List<(string, string)>) val = (false, new List<(string, string)>());
+                            (bool, List<AppWindowViewModel>) val = (false, new List<AppWindowViewModel>());
                             dynamicCharToAppList[letter] = val;
                         }
-                        dynamicCharToAppList[letter].Item2.Add((appNameExt, string.Empty)); // #TODO!!!
+
+                        dynamicCharToAppList[letter].Item2.Add(appWindowViewModels[indexOfUnmapped]); // #TODO??? Should clear the LetterBound and LetterMapped?
+                        //dynamicCharToAppList[letter].Item2.Add((appNameExt, string.Empty)); // #TODO!!!
                     }
                 }
+            } //^^^ foreach(int indexOfUnmapped in indexesOfUnmapped) { ^^^
+
+            if(isPowerMenuEnabled) {
+                AppWindowViewModel appWindowViewModel = new(
+                    launchCommand: "Power Menu"
+                    , letter: ',' // #TODO### Get from param.
+                    , icon: null // #TODO###
+                );
+
+                appWindowViewModels.Add(appWindowViewModel);
             }
 
             return appWindowViewModels;

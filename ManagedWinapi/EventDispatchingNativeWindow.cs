@@ -22,8 +22,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 
-namespace ManagedWinapi.Windows
-{
+namespace ManagedWinapi.Windows {
 
     /// <summary>
     /// Called by an EventDispatchingNativeWindow when a window message is received
@@ -40,24 +39,21 @@ namespace ManagedWinapi.Windows
     /// components can use the same native window to save "USER resources". This class
     /// is useful when writing your own components.
     /// </summary>
-    public class EventDispatchingNativeWindow : NativeWindow
-    {
-
-        private static Object myLock = new Object();
+    public class EventDispatchingNativeWindow : NativeWindow {
+        private static Object _myLock = new Object();
         private static EventDispatchingNativeWindow _instance;
 
         /// <summary>
         /// A global instance which can be used by components that do not need
         /// their own window.
         /// </summary>
-        public static EventDispatchingNativeWindow Instance
-        {
-            get
-            {
-                lock (myLock)
-                {
-                    if (_instance == null)
+        public static EventDispatchingNativeWindow Instance {
+            get {
+                lock(_myLock) {
+                    if(_instance == null) {
                         _instance = new EventDispatchingNativeWindow();
+                    }
+
                     return _instance;
                 }
             }
@@ -71,8 +67,7 @@ namespace ManagedWinapi.Windows
         /// <summary>
         /// Create your own event dispatching window.
         /// </summary>
-        public EventDispatchingNativeWindow()
-        {
+        public EventDispatchingNativeWindow() {
             CreateHandle(new CreateParams());
         }
 
@@ -81,13 +76,15 @@ namespace ManagedWinapi.Windows
         /// </summary>
         /// <param name="m">A System.Windows.Forms.Message that is associated with the 
         /// current Windows message.</param>
-        protected override void WndProc(ref Message m)
-        {
+        protected override void WndProc(ref Message m) {
             bool handled = false;
-            if (EventHandler != null)
+            if(EventHandler != null) {
                 EventHandler(ref m, ref handled);
-            if (!handled)
+            }
+
+            if(!handled) {
                 base.WndProc(ref m);
+            }
         }
     }
 }

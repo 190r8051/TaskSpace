@@ -108,7 +108,8 @@
     <Setting Name="Apps_B" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
 &lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;string&gt;msedge.exe&lt;/string&gt;
+  &lt;string&gt;C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe&lt;/string&gt;
+  &lt;string&gt;C:\Program Files (x86)\Microsoft\Edge Beta\Application\msedge.exe&lt;/string&gt;
   &lt;string&gt;chrome.exe&lt;/string&gt;
   &lt;string&gt;firefox.exe&lt;/string&gt;
   &lt;string&gt;vivaldi.exe&lt;/string&gt;
@@ -208,10 +209,14 @@
     </Setting>
     <Setting Name="Folder_0_Power" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
-&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" /&gt;</Value>
+&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
+  &lt;string&gt;"lock", "L",","&lt;/string&gt;
+  &lt;string&gt;"sleep", "S","."&lt;/string&gt;
+  &lt;string&gt;"restart", "R","/"&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="Folder_0_Key" Type="System.Char" Scope="User">
-      <Value Profile="(Default)">`</Value>
+      <Value Profile="(Default)">,</Value>
     </Setting>
     <Setting Name="BlockList" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;

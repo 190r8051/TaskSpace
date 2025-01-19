@@ -2,12 +2,54 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
+using TaskSpace.Core.Matchers;
 
 namespace TaskSpace.Core {
     public static class Extensions {
+
+        public static char? FirstOrNull(this string @this) {
+            // Check if the string is null or empty, return null if true.
+            if(string.IsNullOrEmpty(@this)) {
+                return null;
+            }
+
+            // Return the first character of the string.
+            return @this[0];
+        }
+
+        public static (string, string, string) ToTupleOf3(
+            this string input
+            , char delimiter = ','
+        ) {
+            if(string.IsNullOrWhiteSpace(input)) {
+                throw new ArgumentException("Input string cannot be null or empty.", nameof(input));
+            }
+
+            // Regular expression to split by the delimiter, ignoring delimiters inside quotes.
+            Regex regex = new($"(?<=^|{delimiter})(\"[^\"]*\"|[^{delimiter}]*)(?={delimiter}|$)");
+            MatchCollection matchCollection = regex.Matches(input);
+
+            // Trim quotes and whitespace from each match.
+            static string _TrimQuotes(string s) => s.Trim().Trim('"');
+
+            // Create a list of trimmed matches.
+            string[] results = new string[3];
+            for(int i = 0; i < matchCollection.Count && i < 3; i++) {
+                results[i] = _TrimQuotes(matchCollection[i].Value);
+            }
+
+            // Initialize remaining items to blank strings if fewer than 3 items are found.
+            for(int i = matchCollection.Count; i < 3; i++) {
+                results[i] = string.Empty;
+            }
+
+            return (results[0], results[1], results[2]);
+        }
+
         public static IEnumerable<Keys> ToRangeList(
             this Keys @this
             , int limit = 0
@@ -273,13 +315,24 @@ namespace TaskSpace.Core {
 #pragma warning restore CA1416 // Validate platform compatibility.
         }
 
-
         public static Key ToKey(this string @this) {
-            if(Enum.TryParse<Key>(@this, out Key result)) {
-                return result;
-            }
+            Key retVal = @this switch {
+                "," => Key.OemComma,
+                "." => Key.OemPeriod,
+                ";" => Key.OemSemicolon,
+                "/" => Key.Oem2,
+                "\\" => Key.OemBackslash,
+                "[" => Key.OemOpenBrackets,
+                "]" => Key.OemCloseBrackets,
+                "-" => Key.OemMinus,
+                "=" => Key.OemPlus,
+                "`" => Key.OemTilde,
+                // #TODO Add more symbols like Backtick?
+                _ when Enum.TryParse(@this, out Key result) => result,
+                _ => throw new ArgumentException("Invalid key name", nameof(@this))
+            };
 
-            throw new ArgumentException("Invalid key name", nameof(@this));
+            return retVal;
         }
 
         /// <summary>

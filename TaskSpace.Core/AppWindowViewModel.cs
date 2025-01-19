@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -17,22 +18,32 @@ namespace TaskSpace.Core {
         #region IWindowText Members
         public AppWindow AppWindow { get; private set; }
 
+        private string _windowTitle;
         public string WindowTitle {
             get {
-                return this.AppWindow?.Title ?? "WindowTitle TEST";
-            }
-        }
-
-        public string AppFilePath {
-            get {
-                string retVal = this.AppWindow?.ExecutablePath ?? "AppFilePath TEST";
+                string retVal = _isLaunchCommand
+                    ? _windowTitle
+                    : this.AppWindow?.Title ?? "WindowTitle TEST";
                 return retVal;
             }
         }
 
-        public string AppFileNameExt {
+        private string _appFilePath;
+        public string AppFilePath {
             get {
-                string retVal = this.AppWindow?.ProcessName ?? "ProcessName TEST";
+                string retVal = _isLaunchCommand
+                    ? _appFilePath
+                    : this.AppWindow?.ExecutablePath ?? "AppFilePath TEST";
+                return retVal;
+            }
+        }
+
+        private string _appFileNameWithExt;
+        public string AppFileNameWithExt {
+            get {
+                string retVal = _isLaunchCommand
+                    ? _appFileNameWithExt
+                    : this.AppWindow?.ProcessName ?? "AppFileNameWithExt TEST";
                 return retVal;
             }
         }
@@ -99,7 +110,28 @@ namespace TaskSpace.Core {
             }
         }
 
-        // This is the mapped letter if found for this app (might change only on start-up, e.g. if there was a change in config).
+        // #TODO Should also have IsLetterAutoMapped property?
+
+        private string _symbolMapped;
+        public string SymbolMapped {
+            get { return _symbolMapped; }
+            set {
+                _symbolMapped = value;
+                NotifyOfPropertyChange(() => SymbolMapped);
+            }
+        }
+
+        // This is the bound symbol if found for this app: starts the same as SymbolMapped, but might change to blank if symbol-filtering multiple instances.
+        private string _symbolBound;
+        public string SymbolBound {
+            get { return _symbolBound; }
+            set {
+                _symbolBound = value;
+                NotifyOfPropertyChange(() => SymbolBound);
+            }
+        }
+
+        // This is the mapped symbol if found for this app (might change only on start-up, e.g. if there was a change in config).
         private string _letterMapped;
         public string LetterMapped {
             get { return _letterMapped; }
@@ -153,25 +185,56 @@ namespace TaskSpace.Core {
             this.AppWindow = null;
         }
 
+        //public AppWindowViewModel(
+        //    AppWindow appWindow
+        //) {
+        //    // #todo Param checking.
+        //    this.AppWindow = appWindow;
+        //}
+
+        // Constructor.
+        public AppWindowViewModel(
+            string appFileNameWithExt
+            , string appFilePath
+            , bool isLaunchCommand
+            , Icon icon
+        ) {
+            this._appFileNameWithExt = appFileNameWithExt;
+            this._appFilePath = appFilePath;
+            //this._windowTitle = ?;
+            this._isLaunchCommand = isLaunchCommand;
+
+            if(isLaunchCommand) {
+                //this.AppWindow = null; // No window as this is a launch command (for now). // #CUT
+
+                this.AppWindow = new AppWindow(hWnd: 0, icon: icon);
+            }
+        }
+
         // Command constructor (e.g. for launching Power Menu commands).
         public AppWindowViewModel(
             string launchCommand
             , char letter
+            , Icon icon
         ) {
-            this.IsLaunchCommand = true;
+            this._isLaunchCommand = true;
 
-            this.AppWindow = null; // No window as this is a launch command?
+            //this.AppWindow = null; // No window as this is a launch command. // #CUT
+            this.AppWindow = new AppWindow(hWnd: 0, icon: icon);
+
+            this._windowTitle = launchCommand;
+            this._appFilePath = launchCommand;
+            this._appFileNameWithExt = launchCommand;
+
             this.LaunchCommand = launchCommand; // #todo Should be possible to mark an app as always in main window (eg if NPP is active, show instance, otherwise show launch command, including if filtering to &Editors).
 
             this.LetterMapped = letter.ToString();
             this.LetterBound = letter.ToString();
 
-            FileInfo fileInfo = new FileInfo(this.LaunchCommand);
+            FileInfo fileInfo = new(this.LaunchCommand);
             this.FormattedProcessTitle = fileInfo.Name;
 
-            //this.FormattedTitle = "[🚀 Launch]";
-            //this.FormattedTitle = ">>> Launch 🚀";
-            this.FormattedTitle = ">>> LOCK"; // Hard-coded for now.
+            this.FormattedTitle = launchCommand;
         }
 
         /// <summary>
