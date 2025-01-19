@@ -309,12 +309,16 @@
                                     <ColumnDefinition Width="35" />
                                     <!-- Padding. -->
                                     <ColumnDefinition Width="25" />
+                                    <!-- SymbolBound. -->
+                                    <ColumnDefinition Width="35" />
+                                    <!-- Padding. -->
+                                    <ColumnDefinition Width="25" />
                                     <!-- Process name. -->
                                     <ColumnDefinition Width="106" />
                                     <!-- App title. -->
                                     <ColumnDefinition Width="422" />
                                 </Grid.ColumnDefinitions>
-                                <!-- Icon. -->
+                                <!-- #start Icon. -->
                                 <Image Height="39" Grid.Row="0" Grid.Column="0" Margin="3,0" VerticalAlignment="Center"
                                        Opacity="{Binding IsBeingClosed, Converter={StaticResource ImageOpacityConverter}, Mode=OneTime}">
                                     <Image.Source>
@@ -327,7 +331,8 @@
                                         </PriorityBinding>
                                     </Image.Source>
                                 </Image>
-                                <!-- Padding. -->
+                                <!-- #end Icon. -->
+                                <!-- #start Padding. -->
                                 <TextBlock
                                     Grid.Row="0" Grid.Column="1" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
                                     <TextBlock.Foreground>
@@ -335,7 +340,8 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- OrdinalMapped1. -->
+                                <!-- #end Padding. -->
+                                <!-- #start OrdinalMapped1.  -->
                                 <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=OrdinalMapped1}"
                                            Grid.Row="0" Grid.Column="2" Margin="10,0" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
                                     <TextBlock.Foreground>
@@ -343,7 +349,8 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource TitleColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- Padding. -->
+                                <!-- #end OrdinalMapped1. -->
+                                <!-- #start Padding. -->
                                 <TextBlock
                                     Grid.Row="0" Grid.Column="3" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
                                     <TextBlock.Foreground>
@@ -351,7 +358,8 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- LetterBound. -->
+                                <!-- #end Padding. -->
+                                <!-- #start LetterBound. -->
                                 <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=LetterBound}"
                                            Grid.Row="0" Grid.Column="4" Margin="10,0" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
                                     <TextBlock.Foreground>
@@ -359,7 +367,8 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource TitleColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- Padding. -->
+                                <!-- #end LetterBound. -->
+                                <!-- #start Padding. -->
                                 <TextBlock
                                     Grid.Row="0" Grid.Column="5" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
                                     <TextBlock.Foreground>
@@ -367,23 +376,44 @@
                                             Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
-                                <!-- Process name. -->
-                                <TextBlock
-                                    local:FormattedTextAttribute.FormattedText="{Binding Path=FormattedProcessTitle}"
-                                    Grid.Row="0" Grid.Column="6" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
-                                    <TextBlock.Foreground>
-                                        <SolidColorBrush
-                                            Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
-                                    </TextBlock.Foreground>
-                                </TextBlock>
-                                <!-- App title. -->
-                                <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=FormattedTitle}"
-                                           Grid.Row="0" Grid.Column="7" Margin="3,0" VerticalAlignment="Center">
+                                <!-- #end Padding. -->
+                                <!-- #start SymbolBound. -->
+                                <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=SymbolBound}"
+                                           Grid.Row="0" Grid.Column="6" Margin="10,0" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
                                     <TextBlock.Foreground>
                                         <SolidColorBrush
                                             Color="{Binding IsBeingClosed, Converter={StaticResource TitleColorConverter}, Mode=OneTime}" />
                                     </TextBlock.Foreground>
                                 </TextBlock>
+                                <!-- #end SymbolBound. -->
+                                <!-- #start Padding. -->
+                                <TextBlock
+                                    Grid.Row="0" Grid.Column="7" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush
+                                            Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                                <!-- #end Padding. -->
+                                <!-- #start Process name. -->
+                                <TextBlock
+                                    local:FormattedTextAttribute.FormattedText="{Binding Path=FormattedProcessTitle}"
+                                    Grid.Row="0" Grid.Column="8" Margin="0" TextAlignment="Left" VerticalAlignment="Center">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush
+                                            Color="{Binding IsBeingClosed, Converter={StaticResource ProcessColorConverter}, Mode=OneTime}" />
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                                <!-- #end Process name. -->
+                                <!-- #start App title. -->
+                                <TextBlock local:FormattedTextAttribute.FormattedText="{Binding Path=FormattedTitle}"
+                                           Grid.Row="0" Grid.Column="9" Margin="3,0" VerticalAlignment="Center">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush
+                                            Color="{Binding IsBeingClosed, Converter={StaticResource TitleColorConverter}, Mode=OneTime}" />
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                                <!-- #end App title. -->
                             </Grid>
                         </StackPanel>
                     </DataTemplate>

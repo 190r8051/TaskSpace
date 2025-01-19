@@ -121,17 +121,18 @@ namespace TaskSpace {
                 return;
             }
 
-            HotkeyViewModel previewHotKeyModel = new HotkeyViewModel();
-            previewHotKeyModel.Ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-            previewHotKeyModel.Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-            previewHotKeyModel.Alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+            HotkeyViewModel previewHotkeyModel = new HotkeyViewModel {
+                Ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0,
+                Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0,
+                Alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0
+            };
 
             KeyboardKey winLKey = new KeyboardKey(Keys.LWin);
             KeyboardKey winRKey = new KeyboardKey(Keys.RWin);
-            previewHotKeyModel.Windows = (winLKey.State & 0x8000) == 0x8000 || (winRKey.State & 0x8000) == 0x8000;
-            previewHotKeyModel.KeyCode = key;
+            previewHotkeyModel.Windows = (winLKey.State & 0x8000) == 0x8000 || (winRKey.State & 0x8000) == 0x8000;
+            previewHotkeyModel.KeyCode = key;
 
-            string previewText = previewHotKeyModel.ToString();
+            string previewText = previewHotkeyModel.ToString();
 
             // Jump to the next element if the user presses only the Tab key.
             if(previewText == "Tab") {
@@ -140,7 +141,7 @@ namespace TaskSpace {
             }
 
             HotkeyPreview.Text = previewText;
-            _hotkeyViewModelMain = previewHotKeyModel;
+            _hotkeyViewModelMain = previewHotkeyModel;
         }
 
         private class HotkeyViewModel {

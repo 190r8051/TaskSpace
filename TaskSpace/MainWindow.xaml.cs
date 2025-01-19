@@ -25,6 +25,7 @@ using ManagedWinapi.Windows;
 using TaskSpace.Core;
 using TaskSpace.Core.Matchers;
 using TaskSpace.Properties;
+using static System.Drawing.Printing.PrinterSettings;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Application = System.Windows.Application;
 using MenuItem = System.Windows.Forms.ToolStripMenuItem; // #note MenuItem is no longer supported. Use ToolStripMenuItem instead. For more details see "https://docs.microsoft.com/en-us/dotnet/core/compatibility/winforms#removed-controls".
@@ -72,18 +73,22 @@ namespace TaskSpace {
         #endregion Externs
 
         #region Properties
+        private bool _isLocked = false; // To prevent auto-switch (without user selection) on startup or after long periods of inactivity.
+
         private bool _isDisposed = false; // To detect redundant calls.
 
         private Key _lastKeyPressed;
-        //private ModifierKeys _lastModifierKeysPressed;
 
         /// <summary>
-        /// The SettingsCharToAppList value with tuples:
-        /// - Item1 :: The app file name, e.g. "app.exe".
-        /// - Item2 :: The app file path, e.g. "C:\app.exe" (or empty string if full file path was not found).
-        /// Static, i.e. loaded once on startup.
+        /// The SettingsCharToAppList value loaded once on startup with the following schema:
+        /// - Dictionary key :: The char mapped to apps, e.g. 'V' is mapped to "Visual Studio".
+        /// - Dictionary value :: The list of AppWindowViewModel objects, with at least the following initialized:
+        ///     - AppFileNameWithExt, e.g. "app.exe".
+        ///     - AppFilePath, e.g. "C:\app.exe" (or empty string if full file path was not found).
+        ///     - IsLaunchCommand, e.g. true. Important, since then the backing fields will be used (instead of properties with extra logic).
+        ///     #todo Add a field IsStatic, similar to IsLaunchCommand, but with the purpose of indicating these are static apps loaded from the settings.
         /// </summary>
-        public Dictionary<char, List<(string, string)>> SettingsCharToAppList { get; private set; } = [];
+        public Dictionary<char, List<AppWindowViewModel>> SettingsCharToAppList { get; private set; } = [];
 
         /// <summary>
         /// Contains the value when the main window has been activated.
@@ -218,10 +223,7 @@ namespace TaskSpace {
         /// The MainWindow constructor.
         /// </summary>
         public MainWindow() {
-#if DEBUG
-            // Allocate console for Console.WriteLine calls.
-            //AllocConsole();
-#endif
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)} constructor start...");
 
             InitializeComponent();
 
@@ -234,24 +236,167 @@ namespace TaskSpace {
 
             SetUpKeyBindings();
 
+            LoadSettings();
+
             //CheckForUpdates(); // #cut
 
             _theme = new Theme(this);
 
             this.Opacity = 0;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)} constructor end.");
         }
         #endregion Constructor
 
         #region Methods
+        private void LoadSettings() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LoadSettings)} start...");
+
+            this.SettingsCharToAppList = [];
+
+            // Initialize SettingsCharToAppList dictionary using the Settings.
+            for(int i = (int)'A'; i <= (int)'Z'; i++) {
+                char letter = (char)i; // E.g. 'F'.
+
+#if DEBUG
+                if (letter == 'B') {
+                    Debug.WriteLine("TARGET");
+                }
+#endif
+
+                string propertyName = $"Apps_{letter}"; // E.g. "Apps_F".
+
+                // Use reflection to get the property by name, e.g. Properties.Settings.Default.Apps_F.
+                PropertyInfo settingsPropertyInfo = Properties.Settings.Default.GetType().GetProperty(propertyName);
+                if(settingsPropertyInfo == null) {
+                    continue;
+                }
+
+                List<AppWindowViewModel> appList = [];
+
+                // Get the raw value of the settings-property-info.
+                object value = settingsPropertyInfo.GetValue(Properties.Settings.Default, null);
+
+                // Check if the settings value is a StringCollection.
+                if(value is System.Collections.Specialized.StringCollection stringCollection) {
+                    List<string> rawStrings = stringCollection
+                        .Cast<string>()
+                        .Select(x => x.ToLower())
+                        .ToList();
+
+                    //List<(string, string, string)> tuples = rawStrings
+                    //.Select(x => x.ToTupleOf3())
+                    //.ToList();
+
+                    foreach(string appString in rawStrings) {
+                        // #note The "app" value is either fully-quelified or not, so need to cover both cases.
+                        string appFileNameWithExt = string.Empty;
+                        string appFilePath = string.Empty;
+                        if(Path.IsPathFullyQualified(appString)) {
+                            // Fully qualified, so tuple Item1 is file-name-ext and Item2 is file-path.
+                            appFileNameWithExt = Path.GetFileName(appString);
+                            appFilePath = appString;
+                        }
+                        else {
+                            // NOT fully qualified, so tuple Item1 is file-name-ext and Item2 is empty string (no file-path).
+                            appFileNameWithExt = appString;
+                        }
+
+                        if(!string.IsNullOrWhiteSpace(appFileNameWithExt)) {
+                            // #note We don't yet have appWindow here.
+                            AppWindowViewModel appWindowViewModel = new(
+                                appFileNameWithExt: appFileNameWithExt
+                                , appFilePath: appFilePath
+                                , isLaunchCommand: true // Set to true for now.
+                                , icon: null
+                            );
+
+                            appList.Add(appWindowViewModel);
+                        }
+                    }
+                }
+
+                this.SettingsCharToAppList[letter] = appList;
+            } //^^^ for(int i = (int)'A'; i <= (int)'Z'; i++) { ^^^
+
+            bool isPowerMenuEnabled = true; // #TODO Param.
+            if(isPowerMenuEnabled) {
+                List<string> rawStrings = Properties.Settings.Default.Folder_0_Power.Cast<string>().ToList();
+
+                // #FUTURE Could add an extra tuple items for specified alpha/symbol?
+                List<AppWindowViewModel> appList = [];
+
+                List<(string, string, string)> tuples = rawStrings
+                    .Select(x => x.ToTupleOf3())
+                    .ToList();
+                foreach((string app, string letter, string symbol) in tuples) {
+                    // #NEW
+                    /*
+                    //// If conversion fails, use a custom default icon
+                    //if(iconImage == null || iconImage.UriSource == null) {
+                    //    iconImage = new BitmapImage(new Uri("pack://application:,,,/YourAssemblyName;component/Images/DefaultIcon.png"));
+                    //}
+                    // Retrieve the default icon from the project's resources.
+                    using(System.IO.MemoryStream iconStream = new System.IO.MemoryStream()) {
+    #pragma warning disable CA1416 // Validate platform compatibility.
+                        TaskSpace.Properties.Resources.icon.Save(iconStream); // Assuming DefaultIcon is of type `Icon`.
+    #pragma warning restore CA1416 // Validate platform compatibility.
+                        iconStream.Seek(0, System.IO.SeekOrigin.Begin);
+
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = iconStream;
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.EndInit();
+                        bitmapImage.Freeze();
+
+                        iconImage = bitmapImage;
+                    }
+                    */
+
+                    Icon icon = Properties.Resources.icon; // #TODO Not just one icon.
+
+                    AppWindowViewModel appWindowViewModel = new(
+                        launchCommand: app
+                        , letter: letter?.FirstOrNull() ?? '?' // #TODO Fall-through character?
+                                                               //, symbol: symbol // #TODO###
+                        , icon: icon
+                    );
+
+                    appList.Add(appWindowViewModel);
+                }
+
+                this.SettingsCharToAppList[Properties.Settings.Default.Folder_0_Key] = appList;
+            }
+
+#if DEBUG
+            // #BUG Why are settings changes not picked-up automatically?
+            Properties.Settings.Default.Reset();
+#endif
+
+            _blockList = Properties.Settings.Default.BlockList.Cast<string>()
+                .Select(x => x.ToLower())
+                .ToList();
+
+#if DEBUG
+            // #BUG Why are settings changes not picked-up automatically?
+            //_blockList.Add("rtkuwp");
+#endif
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LoadSettings)} end.");
+        }
+
         // #todo!!! Could add the main task launching here, e.g. check "1", "V", etc.
         // #todo If "_" is hit, then switch to the search mode (but could backspace back to the main mode).
         private void SetUpKeyBindings() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpKeyBindings)} start...");
+
             string letter = string.Empty;
 
             // Enter and Esc bindings are not executed before the keys have been released.
             // This is done to prevent that the window being focused after the key presses to get 'KeyUp' messages.
-            KeyDown += async (sender, args) => {
-                // #TODO Move a lot of mappings to KeyUp instead.
+            KeyDown += async (sender, args) => { // #TODO Why async?
+                                                 // #TODO Move a lot of mappings to KeyUp instead.
 
                 // Opacity is set to 0 right away so it appears that action has been taken right away (instead of waiting for release).
                 if(args.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
@@ -275,16 +420,34 @@ namespace TaskSpace {
                     // e.g. hit 9, but there are no 9 apps? Or hit V, but this is not mapped directly to anything?
                     // Then, automatically switch to search mode, e.g. type " " (to be consistent with search mode), then type 9 or V.
 
-                    // Do determine this here (ie DON'T hide the app if the above search was actually executed).
+                    // Do determine this here (i.e. DON'T hide the app if the above search was actually executed).
 
+                    // #CUT
                     // #todo!!! Should follow the same schema as below.
-                    if(args.Key == Key.OemTilde) { // #todo Make sure that there are no modifiers?
-                        // #todo _hotkeyFilteredWindowList = GetPowerMenuOptions(); // #todo Also _hotkeyFilteredWindowListBackup?
-                        AppWindowViewModel targetWindow = GetSwitchableWindows(args.Key, out letter).FirstOrDefault();
-                        if(targetWindow != null) {
-                            _launchCommand = targetWindow.LaunchCommand;
-                            this.Opacity = 0; // Disappear the main UI window.
+                    //if(args.Key == Key.OemTilde) { // #todo Make sure that there are no modifiers? #CUT?
+                    //    AppWindowViewModel targetWindow = GetSwitchableWindows(args.Key, out letter).FirstOrDefault();
+                    //    if(targetWindow != null) {
+                    //        _launchCommand = targetWindow.LaunchCommand;
+                    //        this.Opacity = 0; // Disappear the main UI window.
+                    //    }
+                    //}
+                    //else
+                    if(args.Key == Properties.Settings.Default.Folder_0_Key.ToString().ToKey()) { // #todo Make sure that there are no modifiers?
+                                                                                                  // #FUTURE The settings should have the pre-mapped keys (letter, symbol, maybe also NumPad?,) as well as icon names.
+                                                                                                  // For icons, should be able to override the icon with the one from settings (might also work for regular apps).
+                        _hotkeyFilteredWindowList = GetPowerMenuOptions();
+                        _hotkeyFilteredWindowListBackup = [.. _hotkeyFilteredWindowList]; // Create a shallow copy.
+                        if(_hotkeyFilteredWindowList != null && _hotkeyFilteredWindowList.Count == 1) {
+                            this.Opacity = 0;
                         }
+
+                        // #CUT
+                        //// #todo _hotkeyFilteredWindowList = GetPowerMenuOptions(); // #todo Also _hotkeyFilteredWindowListBackup?
+                        //AppWindowViewModel targetWindow = GetSwitchableWindows(args.Key, out letter).FirstOrDefault();
+                        //if(targetWindow != null) {
+                        //    _launchCommand = targetWindow.LaunchCommand;
+                        //    this.Opacity = 0; // Disappear the main UI window.
+                        //}
                     }
                     else if((Key.D0 <= args.Key && args.Key <= Key.D9)
                         || (Key.NumPad0 <= args.Key && args.Key <= Key.NumPad9)
@@ -305,35 +468,40 @@ namespace TaskSpace {
             KeyUp += (sender, args) => {
                 // ... But only when the keys are released, the action is actually executed.
                 if(args.Key == Key.Space) {
-#if DEBUG
-                    //Console.WriteLine($"DEBUG :: Space detected.");
-#endif
+                    //Debug.WriteLine($"DEBUG :: Space detected.");
 
                     bool shouldSwitch = false;
+                    string debugShouldSwitch = string.Empty;
                     if(Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) {
                         // #nop This is likely the current main-window launch.
-#if DEBUG
                         // #todo Never hit?
-                        Console.WriteLine($"DEBUG :: NOP :: ALT+Space detected.");
-#endif
+                        Debug.WriteLine($"DEBUG :: NOP :: ALT+Space detected.");
 
                         if(IS_ALT_SPACE_ALT_SPACE_ENABLED) {
                             TimeSpan? timeSpanDiff = _mainWindowActiveDateTime.HasValue
                                 ? DateTime.UtcNow - _mainWindowActiveDateTime
                                 : null;
-                            if(timeSpanDiff < SHOW_TIMEOUT) {
+                            if(!timeSpanDiff.HasValue
+                                || !_mainWindowActiveDateTime.HasValue
+                            ) {
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this is likely ALT+Space near startup. timeSpanDiff=```{timeSpanDiff}```; _mainWindowActiveDateTime=```{_mainWindowActiveDateTime}```; .");
+                            }
+                            else if(timeSpanDiff < SHOW_TIMEOUT) {
                                 // #nop This is likely the current main-window launch (even though ALT is not detected).
-#if DEBUG
-                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
-#endif
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
                             }
                             else {
-#if DEBUG
-                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
-#endif
+                                // [bug]?
+                                //if(_isLocked) {
+                                //    Debug.WriteLine($"DEBUG :: ALT not detected, but this is likely ALT+Space near startup. _isLocked=```{_isLocked}```.");
+                                //}
+                                //else {
+                                //debugShouldSwitch = $"";
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch. _isLocked=```{_isLocked}```.");
 
                                 // #todo Check flags like Control etc.
                                 shouldSwitch = true;
+                                //}
                             }
                         }
                     }
@@ -342,16 +510,17 @@ namespace TaskSpace {
                             TimeSpan? timeSpanDiff = _mainWindowActiveDateTime.HasValue
                                 ? DateTime.UtcNow - _mainWindowActiveDateTime
                                 : null;
-                            if(timeSpanDiff < SHOW_TIMEOUT) {
+                            if(!timeSpanDiff.HasValue
+                                || !_mainWindowActiveDateTime.HasValue
+                            ) {
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this is likely ALT+Space near startup. timeSpanDiff=```{timeSpanDiff}```; _mainWindowActiveDateTime=```{_mainWindowActiveDateTime}```; .");
+                            }
+                            else if(timeSpanDiff < SHOW_TIMEOUT) {
                                 // #nop This is likely the current main-window launch (even though ALT is not detected).
-#if DEBUG
-                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch...");
-#endif
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space then released => Initial launch. _mainWindowActiveDateTime=```{_mainWindowActiveDateTime:u}```; UtcNow=```{DateTime.UtcNow:u}```.");
                             }
                             else {
-#if DEBUG
-                                Console.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch...");
-#endif
+                                Debug.WriteLine($"DEBUG :: ALT not detected, but this was likely ALT+Space (UI launched), then Space => Switch. _mainWindowActiveDateTime=```{_mainWindowActiveDateTime:u}```; UtcNow=```{DateTime.UtcNow:u}```; timeSpanDiff=```{timeSpanDiff}```.");
 
                                 // #todo Check flags like Control etc.
                                 shouldSwitch = true;
@@ -360,6 +529,7 @@ namespace TaskSpace {
                     }
 
                     if(shouldSwitch) {
+                        Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} before 511...");
                         Switch(); // Switch to currently selected app (i.e. treat Space as Enter).
                     }
                 }
@@ -370,6 +540,7 @@ namespace TaskSpace {
                 }
                 // #note This might not have all the combinations from above, e.g. ALT+S.
                 else if(args.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
+                    Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} before 376...");
                     Switch();
                 }
                 else if(args.Key == Key.Escape) {
@@ -403,6 +574,8 @@ namespace TaskSpace {
 
                 _launchCommand = string.Empty;
             };
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpKeyBindings)} end.");
         }
 
         /// <summary>
@@ -424,6 +597,8 @@ namespace TaskSpace {
         private void ToggleSearch(
             bool? isSearchEnabled = null
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} start...");
+
             bool isSearchEnabledLocal = !isSearchEnabled.HasValue
                 ? !_isSearchEnabled
                 : (isSearchEnabled == true);
@@ -446,19 +621,25 @@ namespace TaskSpace {
 
                 SearchIcon.Opacity = 0.4;
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} end.");
         }
 
         private void SetUpDefaultHotkeys() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpDefaultHotkeys)} start...");
+
             this.PreviewKeyDown += this.MainWindow_PreviewKeyDown;
 
+            // Set up the main hotkey, e.g. ALT+Space.
             _hotkeyMain = new Hotkey();
             _hotkeyMain.LoadSettingsMain();
 
+            // Set up the alt hotkey, e.g. ALT+` (below tilde).
             _hotkeyAlt = new Hotkey();
             _hotkeyAlt.LoadSettingsAlt();
 
-            Application.Current.Properties["HotKeyMain"] = _hotkeyMain;
-            Application.Current.Properties["HotKeyAlt"] = _hotkeyAlt;
+            Application.Current.Properties["HotkeyMain"] = _hotkeyMain;
+            Application.Current.Properties["HotkeyAlt"] = _hotkeyAlt;
 
             _hotkeyMain.HotkeyPressed += hotkeyMain_HotkeyPressed; // ALT+Space default.
             try {
@@ -485,12 +666,16 @@ namespace TaskSpace {
                 // #TODO Update.
                 MessageBox.Show(boxText, "Hotkey2 already in use", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpDefaultHotkeys)} end.");
         }
 
         private void MainWindow_PreviewKeyDown(
             object sender
             , System.Windows.Input.KeyEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_PreviewKeyDown)} start...");
+
             if(e.Key == Key.System) {
                 // Handle ALT key combinations. Use e.SystemKey to get the actual key pressed with ALT.
                 _lastKeyPressed = e.SystemKey;
@@ -503,14 +688,22 @@ namespace TaskSpace {
                 // Store the last key pressed for non-system keys.
                 _lastKeyPressed = e.Key;
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_PreviewKeyDown)} end.");
         }
 
         private void SetUpAltTabHook() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpAltTabHook)} start...");
+
             _altTabHook = new AltTabHook();
             _altTabHook.Pressed += AltTabPressed;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpAltTabHook)} end.");
         }
 
         private void SetUpNotifyIcon() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpNotifyIcon)} start...");
+
             Icon icon = Properties.Resources.icon;
 
             //MenuItem runOnStartupMenuItem = new MenuItem("Run on Startup", (s, e) => RunOnStartup(s as MenuItem)) { // #warning .NET Framework 4.8-.
@@ -536,10 +729,16 @@ namespace TaskSpace {
                     }
                 }
             };
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SetUpNotifyIcon)} end.");
         }
 
         //private static void RunOnStartup(MenuItem menuItem) { // #warning .NET Framework 4.8-.
-        private static void RunOnStartup(ToolStripMenuItem toolStripMenuItem) {
+        private static void RunOnStartup(
+            ToolStripMenuItem toolStripMenuItem
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(RunOnStartup)} start...");
+
             try {
                 AutoStart autoStart = new AutoStart {
                     IsEnabled = !toolStripMenuItem.Checked
@@ -547,9 +746,11 @@ namespace TaskSpace {
 
                 toolStripMenuItem.Checked = autoStart.IsEnabled;
             }
-            catch(AutoStartException e) {
-                MessageBox.Show(e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            catch(AutoStartException ex) {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(RunOnStartup)} end.");
         }
 
         /// <summary>
@@ -558,10 +759,12 @@ namespace TaskSpace {
         /// </summary>
         /// <param name="initialFocus">The initial focus value, i.e. Previous/Current/Next.</param>
         /// <param name="isSingleAppModeEnabled">#opt[default is false] Activates the single-app-mode, i.e. the UI is filtered to a single (current) app instances.</param>
-        private void LoadData(
+        private void PopulateWindowList(
             InitialFocus initialFocus
             , bool isSingleAppModeEnabled = false
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(PopulateWindowList)} start...");
+
             // Restore searchbox defaults.
             TextBoxSearch.Background = _theme.Background;
             SearchIcon.Opacity = 0.4;
@@ -570,77 +773,12 @@ namespace TaskSpace {
 
             TextBoxSearch.IsReadOnly = true; // [!] Read-only true so that the caret again doesn't show.
 
-            _mainWindowActiveDateTime = DateTime.UtcNow;
+#pragma warning disable IDE0305 // Simplify collection initialization.
 
-            // #future Should be done once on startup, not on every LoadData call (accept as param).
-            // Clear the previous mappings (some previous apps might be closed now).
-            this.SettingsCharToAppList = [];
-
-            // Initialize CharToAppsList dictionary using the Settings.
-            for(int i = (int)'A'; i <= (int)'Z'; i++) {
-                char letter = (char)i; // E.g. 'F'.
-                string propertyName = $"Apps_{letter}"; // E.g. "Apps_F".
-
-                // Use reflection to get the property by name, e.g. Properties.Settings.Default.Apps_F.
-                PropertyInfo settingsPropertyInfo = Properties.Settings.Default.GetType().GetProperty(propertyName);
-                if(settingsPropertyInfo == null) {
-                    continue;
-                }
-
-                List<(string, string)> appsList = [];
-
-                // Get the raw value of the settings-property-info.
-                object value = settingsPropertyInfo.GetValue(Properties.Settings.Default, null);
-
-                // Check if the settings value is a StringCollection.
-                if(value is StringCollection stringCollection) {
-                    List<string> stringList = stringCollection
-                        .Cast<string>()
-                        .Select(x => x.ToLower())
-                        .ToList();
-
-                    foreach(string app in stringList) {
-                        // #note The "app" value is either fully-quelified or not, so need to cover both cases.
-                        string appFileNameExt = string.Empty;
-                        string appFilePath = string.Empty;
-                        if(Path.IsPathFullyQualified(app)) {
-                            // Fully qualified, so tuple Item1 is file-name-ext and Item2 is file-path.
-                            appFileNameExt = Path.GetFileName(app);
-                            appFilePath = app;
-                        }
-                        else {
-                            // NOT fully qualified, so tuple Item1 is file-name-ext and Item2 is empty string (no file-path).
-                            appFileNameExt = app;
-                        }
-
-                        if(!string.IsNullOrWhiteSpace(appFileNameExt)) {
-                            appsList.Add((appFileNameExt, appFilePath));
-                        }
-                    }
-                }
-
-                this.SettingsCharToAppList[letter] = appsList;
-            }
-
-#if DEBUG
-            // #BUG Why are settings changes not picked-up automatically?
-            Properties.Settings.Default.Reset();
-#endif
-
-            _blockList = Properties.Settings.Default.BlockList.Cast<string>()
-                .Select(x => x.ToLower())
+            _unfilteredWindowList = WindowFinder
+                .GetAndMapWindows(_blockList, this.SettingsCharToAppList, this._isAutoMappingEnabled, isPowerMenuEnabled: true)
                 .ToList();
-
-#if DEBUG
-            // #BUG Why are settings changes not picked-up automatically?
-            //_blockList.Add("rtkuwp");
-#endif
-
-            _unfilteredWindowList = new WindowFinder()
-                // #todo This should be renamed to GetAndMapWindows and instead of returning
-                // AppWindow, return AppWindowViewModel (already mapped to static/dynamic letter).
-                .GetAndMapWindows(_blockList, this.SettingsCharToAppList, this._isAutoMappingEnabled)
-                .ToList();
+#pragma warning restore IDE0305 // Simplify collection initialization.
 
             AppWindowViewModel firstAppWindowViewModel = _unfilteredWindowList.FirstOrDefault();
 
@@ -649,19 +787,12 @@ namespace TaskSpace {
             // Index the unfiltered windows.
             for(int i0 = 0, i1 = 1; i0 < _unfilteredWindowList.Count; i0++, i1++) {
                 AppWindowViewModel appWindowViewModel = _unfilteredWindowList[i0];
-                appWindowViewModel.FormattedTitle = new XamlHighlighter().Highlight(new[] { new StringPart(appWindowViewModel.AppWindow.Title) });
-                appWindowViewModel.FormattedProcessTitle = new XamlHighlighter().Highlight(new[] { new StringPart(appWindowViewModel.AppWindow.ProcessName) });
-                appWindowViewModel.OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
-            }
 
-            // #todo!!! Could be integrated into GetSwitchableWindows (i.e. no filtering mode).
-            bool isPowerMenuEnabled = false; // #future Move to settings.
-            if(isPowerMenuEnabled) {
-                List<AppWindowViewModel> windows = GetPowerMenuOptions();
+                appWindowViewModel.FormattedTitle = new XamlHighlighter().Highlight([new StringPart(appWindowViewModel.WindowTitle)]);
 
-                foreach(AppWindowViewModel window in windows) {
-                    _unfilteredWindowList.Add(window);
-                }
+                appWindowViewModel.FormattedProcessTitle = new XamlHighlighter().Highlight([new StringPart(appWindowViewModel.AppFileNameWithExt)]);
+
+                appWindowViewModel.OrdinalMapped1 = new XamlHighlighter().Highlight([new StringPart(i1.Get1BasedIndexString())]);
             }
 
             _searchFilteredWindowList = new ObservableCollection<AppWindowViewModel>(_unfilteredWindowList);
@@ -676,41 +807,54 @@ namespace TaskSpace {
             TextBoxSearch.Focus();
             TextBoxSearch.IsReadOnly = true; // [!] Read-only true so that the caret doesn't show (yet).
 
-            // #buggy
+            // #buggy?
             if(isSingleAppModeEnabled) {
                 string letterMapped = firstAppWindowViewModel.LetterMapped;
                 if(!string.IsNullOrEmpty(letterMapped)) {
                     _hotkeyFilteredWindowList = GetSwitchableWindows(
-                        Key.DeadCharProcessed
-                        , out string letter
-                        , isPowerMenuEnabled
-                        , letterMapped
+                        key: Key.DeadCharProcessed
+                        , letter: out string letter
+                        , inputLetter: letterMapped
                     );
+
                     _hotkeyFilteredWindowListBackup = [.. _hotkeyFilteredWindowList]; // Create a shallow copy.
 
+                    // #CUT?
                     //if(_hotkeyFilteredWindowListBackup != null && _hotkeyFilteredWindowListBackup.Count == 1) {
                     //    Opacity = 0;
                     //}
 
-                    SwitchOrFilter(_hotkeyFilteredWindowList, letter);
+                    SwitchOrFilter(
+                        appWindowViewModels: _hotkeyFilteredWindowList
+                        , letter: letter
+                    );
                 }
             }
 
             CenterWindow();
             ScrollSelectedItemIntoView();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(PopulateWindowList)} end.");
         }
 
-        // #experimental
-        // #future Should return a list. When '`' is hit, should open the folder mapped to '`' key.
-        // #future! Read the list from settings.
         private List<AppWindowViewModel> GetPowerMenuOptions() {
-            throw new NotImplementedException();
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetPowerMenuOptions)} start...");
+
+            try {
+                List<AppWindowViewModel> appWindowViewModels = SettingsCharToAppList[','];
+                return appWindowViewModels;
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetPowerMenuOptions)} end.");
+            }
         }
 
         private void FocusItemInList(
             InitialFocus initialFocus
         //, bool foregroundWindowMovedToBottom
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(FocusItemInList)} start...");
+
             if(initialFocus == InitialFocus.PreviousItem) {
                 // #note!!! Properties.Settings.Default.IsFocusNextEnabled is never applicable here.
                 int previousItemIndex = ListBoxPrograms.Items.Count - 1;
@@ -734,13 +878,17 @@ namespace TaskSpace {
                 }
             }
 
-            //_lastSelectedIndex = listboxProgramName.SelectedIndex;
+            //_lastSelectedIndex = listboxProgramName.SelectedIndex; // #cut?
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(FocusItemInList)} end.");
         }
 
         /// <summary>
         /// Place the TaskSpace window in the center of the screen.
         /// </summary>
         private void CenterWindow() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CenterWindow)} start...");
+
             // Reset height every time to ensure that resolution changes take effect.
             Border.MaxHeight = SystemParameters.PrimaryScreenHeight;
 
@@ -751,6 +899,8 @@ namespace TaskSpace {
             // Position the window in the center of the screen.
             Left = (SystemParameters.PrimaryScreenWidth / 2) - (ActualWidth / 2);
             Top = (SystemParameters.PrimaryScreenHeight / 2) - (ActualHeight / 2);
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CenterWindow)} end.");
         }
 
         /// <summary>
@@ -759,16 +909,23 @@ namespace TaskSpace {
         private List<AppWindowViewModel> GetSwitchableWindows(
             string processName
         ) {
-            List<AppWindowViewModel> retVal = [];
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetSwitchableWindows)} start...");
 
-            // #note ItemCollection is not queryable.
-            foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
-                if(appWindowViewModel.AppFileNameExt.Equals(processName, StringComparison.OrdinalIgnoreCase)) {
-                    retVal.Add(appWindowViewModel);
+            try {
+                List<AppWindowViewModel> retVal = [];
+
+                // #note ItemCollection is not queryable.
+                foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
+                    if(appWindowViewModel.AppFileNameWithExt.Equals(processName, StringComparison.OrdinalIgnoreCase)) {
+                        retVal.Add(appWindowViewModel);
+                    }
                 }
-            }
 
-            return retVal;
+                return retVal;
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetSwitchableWindows)} end.");
+            }
         }
 
         /// <summary>
@@ -778,82 +935,65 @@ namespace TaskSpace {
         private List<AppWindowViewModel> GetSwitchableWindows(
             Key key
             , out string letter
-            , bool isPowerMenuEnabled = false
             , string inputLetter = ""
         ) {
-            List<AppWindowViewModel> retVal = [];
-            letter = string.Empty;
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetSwitchableWindows)} start...");
 
-            Key keyLocal = key;
-            if(!string.IsNullOrEmpty(inputLetter)) {
-                try {
-                    keyLocal = inputLetter.ToKey();
-                }
-                catch {
-                }
-            }
+            try {
+                List<AppWindowViewModel> retVal = [];
+                letter = string.Empty;
 
-            if(keyLocal == Key.OemTilde) {
-                foreach(object obj in ListBoxPrograms.Items) {
-                    AppWindowViewModel appWindowViewModel = (AppWindowViewModel)obj;
-                    if(appWindowViewModel.LetterMapped == "`") {
-                        retVal.Add(appWindowViewModel);
+                Key keyLocal = key;
+                if(!string.IsNullOrEmpty(inputLetter)) {
+                    try {
+                        keyLocal = inputLetter.ToKey();
                     }
-                }
-            }
-            else if((Key.D0 <= keyLocal && keyLocal <= Key.D9)
-                || (Key.NumPad0 <= keyLocal && keyLocal <= Key.NumPad9)
-                || (Key.F1 <= keyLocal && keyLocal <= Key.F24)
-            ) {
-                int? i1 = null;
-                if(keyLocal == Key.D0 || keyLocal == Key.NumPad0) {
-                    i1 = 10;
-                }
-                else if(Key.D1 <= keyLocal && keyLocal <= Key.D9) {
-                    i1 = (int)(keyLocal - Key.D0); // e.g. for Key.D1, the index is 1 (D1 value 35 minus D0 value 34).
-                }
-                else if(Key.NumPad1 <= keyLocal && keyLocal <= Key.NumPad9) {
-                    i1 = (int)(keyLocal - Key.NumPad0); // e.g. for Key.NumPad1, the index is 1 (NumPad1 value 75 minus NumPad0 value 74).
-                }
-                else if(Key.F1 <= keyLocal && keyLocal <= Key.F24) {
-                    i1 = 11 + (int)(keyLocal - Key.F1); // e.g. for Key.F1, the index is 11 (F1 value 90 minus F1 value 90 plus 11).
-                }
-
-                int? i0 = !i1.HasValue ? (int?)null : i1.Value - 1;
-                if(i0.HasValue && i0.Value < ListBoxPrograms.Items.Count) {
-                    retVal.Add((AppWindowViewModel)ListBoxPrograms.Items[i0.Value]);
-                }
-            }
-            else if(Key.A <= keyLocal && keyLocal <= Key.Z) {
-                // Calculate the letter based on the offset from Key.A.
-                letter = ((char)((int)keyLocal - (int)Key.A + 'A')).ToString();
-
-                // #todo? Get the apps from settings, e.g. ...
-                //if(key == Key.A) {
-                //    appsList = Properties.Settings.Default.Apps_A.Cast<string>().ToList();
-                //}
-                //else if(key == Key.E) {
-                //    appsList = Properties.Settings.Default.Apps_E.Cast<string>().ToList();
-                //}
-
-                // #note ItemCollection is not queryable.
-                foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
-                    if(appWindowViewModel.LetterBound.Equals(letter, StringComparison.OrdinalIgnoreCase)) {
-                        retVal.Add(appWindowViewModel);
+                    catch {
                     }
                 }
 
-                retVal = [.. retVal.OrderBy(x => x.OrdinalMapped0)];
-            }
+                if((Key.D0 <= keyLocal && keyLocal <= Key.D9)
+                    || (Key.NumPad0 <= keyLocal && keyLocal <= Key.NumPad9)
+                    || (Key.F1 <= keyLocal && keyLocal <= Key.F24)
+                ) {
+                    int? i1 = null;
+                    if(keyLocal == Key.D0 || keyLocal == Key.NumPad0) {
+                        i1 = 10;
+                    }
+                    else if(Key.D1 <= keyLocal && keyLocal <= Key.D9) {
+                        i1 = (int)(keyLocal - Key.D0); // e.g. for Key.D1, the index is 1 (D1 value 35 minus D0 value 34).
+                    }
+                    else if(Key.NumPad1 <= keyLocal && keyLocal <= Key.NumPad9) {
+                        i1 = (int)(keyLocal - Key.NumPad0); // e.g. for Key.NumPad1, the index is 1 (NumPad1 value 75 minus NumPad0 value 74).
+                    }
+                    else if(Key.F1 <= keyLocal && keyLocal <= Key.F24) {
+                        i1 = 11 + (int)(keyLocal - Key.F1); // e.g. for Key.F1, the index is 11 (F1 value 90 minus F1 value 90 plus 11).
+                    }
 
-            if(isPowerMenuEnabled) {
-                List<AppWindowViewModel> appWindowViewModels = GetPowerMenuOptions();
-                foreach(AppWindowViewModel appWindowViewModel in appWindowViewModels) {
-                    retVal.Add(appWindowViewModel);
+                    int? i0 = !i1.HasValue ? (int?)null : i1.Value - 1;
+                    if(i0.HasValue && i0.Value < ListBoxPrograms.Items.Count) {
+                        retVal.Add((AppWindowViewModel)ListBoxPrograms.Items[i0.Value]);
+                    }
                 }
-            }
+                else if(Key.A <= keyLocal && keyLocal <= Key.Z) {
+                    // Calculate the letter based on the offset from Key.A.
+                    letter = ((char)((int)keyLocal - (int)Key.A + 'A')).ToString();
 
-            return retVal;
+                    // #note ItemCollection is not queryable.
+                    foreach(AppWindowViewModel appWindowViewModel in ListBoxPrograms.Items) {
+                        if(appWindowViewModel.LetterBound.Equals(letter, StringComparison.OrdinalIgnoreCase)) {
+                            retVal.Add(appWindowViewModel);
+                        }
+                    }
+
+                    retVal = [.. retVal.OrderBy(x => x.OrdinalMapped0)];
+                }
+
+                return retVal;
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetSwitchableWindows)} end.");
+            }
         }
 
         /// </summary>
@@ -867,56 +1007,65 @@ namespace TaskSpace {
             , string letter = ""
             , bool forceShowWindow = false
         ) {
-            if(appWindowViewModels == null
-                || appWindowViewModels.Count == 0
-            ) {
-                // #nop
-                return;
-            }
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SwitchOrFilter)} start...");
+
+            try {
+                if(appWindowViewModels == null
+                    || appWindowViewModels.Count == 0
+                ) {
+                    // #nop
+                    return;
+                }
 
 
 #if DEBUG
-            if(letter == "R") {
-                Debug.WriteLine("TARGET");
-            }
+                //if(letter == "R") {
+                //    Debug.WriteLine("TARGET");
+                //}
 #endif
 
-            if(appWindowViewModels.Count == 1) {
-                AppWindowViewModel appWindowViewModel = appWindowViewModels.First();
-                if(appWindowViewModel.IsLaunchCommand) {
-                    Process.Start(appWindowViewModel.LaunchCommand);
+                if(appWindowViewModels.Count == 1) {
+                    AppWindowViewModel appWindowViewModel = appWindowViewModels.First();
+                    if(appWindowViewModel.IsLaunchCommand) {
+                        Process.Start(appWindowViewModel.LaunchCommand);
+                    }
+                    else if(!forceShowWindow) {
+                        // #bug? If there is only one app, still show the main window?
+                        appWindowViewModel.AppWindow.SwitchToLastVisibleActivePopup();
+
+                        _hotkeyFilteredWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered (to just one app) and immediately hide. #bug But if cleared here, closing already filtered windows doesn't work. #warning DON'T also modify _targetWindowListBackup.
+
+                        HideMainWindow();
+                    }
                 }
-                else if(!forceShowWindow) {
-                    // #bug? If there is only one app, still show the main window?
-                    appWindowViewModel.AppWindow.SwitchToLastVisibleActivePopup();
+                else {
+                    // [!] If true, don't immediately switch.
 
-                    _hotkeyFilteredWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered (to just one app) and immediately hide. #bug But if cleared here, closing already filtered windows doesn't work. #warning DON'T also modify _targetWindowListBackup.
+                    // Update the indexing (with proper highlighting).
+                    for(int i0 = 0, i1 = 1; i0 < appWindowViewModels.Count; i0++, i1++) {
+                        AppWindowViewModel appWindowViewModel = appWindowViewModels[i0];
+                        appWindowViewModel.OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
 
-                    HideMainWindow();
+                        string letterBound = (string.IsNullOrEmpty(letter) || i0 == 0 || appWindowViewModel.IsLaunchCommand)
+                            ? appWindowViewModel.LetterMapped
+                            // [!] Clear the letter, e.g. only the first app in list is mapped to letter (so hitting letter again to select it would work).
+                            : string.Empty;
+
+                        appWindowViewModel.LetterBound = letterBound;
+                    }
+
+                    ListBoxPrograms.DataContext = null; // #opt
+                    ListBoxPrograms.DataContext = appWindowViewModels;
+
+                    if(0 < ListBoxPrograms.Items.Count) {
+                        ListBoxPrograms.SelectedItem = ListBoxPrograms.Items[0];
+                    }
+
+                    _hotkeyFilteredWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered. #warning DON'T also modify _hotkeyFilteredWindowListBackup.
                 }
             }
-            else {
-                // [!] If true, don't immediately switch.
-
-                // Update the indexing (with proper highlighting).
-                for(int i0 = 0, i1 = 1; i0 < appWindowViewModels.Count; i0++, i1++) {
-                    AppWindowViewModel appWindowViewModel = appWindowViewModels[i0];
-                    appWindowViewModel.OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
-
-                    appWindowViewModel.LetterBound = (string.IsNullOrEmpty(letter) || i0 == 0 || appWindowViewModel.IsLaunchCommand)
-                        ? appWindowViewModel.LetterMapped
-                        // [!] Clear the letter, e.g. only the first app in list is mapped to letter (so hitting letter again to select it would work).
-                        : string.Empty;
-                }
-
-                ListBoxPrograms.DataContext = null; // #opt
-                ListBoxPrograms.DataContext = appWindowViewModels;
-
-                if(0 < ListBoxPrograms.Items.Count) {
-                    ListBoxPrograms.SelectedItem = ListBoxPrograms.Items[0];
-                }
-
-                _hotkeyFilteredWindowList = null; // #gotcha Without this, next ALT+Space will still be filtered. #warning DON'T also modify _hotkeyFilteredWindowListBackup.
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SwitchOrFilter)} end.");
             }
         }
 
@@ -924,6 +1073,8 @@ namespace TaskSpace {
         /// Switches the window associated with the selected item.
         /// </summary>
         private void Switch() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Switch)} start...");
+
             if(0 < ListBoxPrograms.Items.Count) {
                 AppWindowViewModel appWindowViewModel = (AppWindowViewModel)(ListBoxPrograms.SelectedItem ?? ListBoxPrograms.Items[0]);
                 if(appWindowViewModel.IsLaunchCommand) {
@@ -936,12 +1087,16 @@ namespace TaskSpace {
 
             // #bug? What if above didn't find any apps? Still hide?
             HideMainWindow();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Switch)} end.");
         }
 
         /// <summary>
         /// Hides the main TaskSpace window.
         /// </summary>
         private void HideMainWindow() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(HideMainWindow)} start...");
+
             if(_windowCloser != null) {
                 _windowCloser.Dispose();
                 _windowCloser = null;
@@ -951,45 +1106,60 @@ namespace TaskSpace {
             //_altTabAutoSwitch = false;
             Opacity = 0;
             Dispatcher.BeginInvoke(new Action(Hide), DispatcherPriority.Input);
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(HideMainWindow)} end.");
         }
 
         /// <summary>
         /// Disposes the resources.
         /// </summary>
         public void Dispose() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Dispose)} start...");
+
             Dispose(true);
             GC.SuppressFinalize(this);
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Dispose)} end.");
         }
 
         /// <summary>
         /// Disposes of managed and unmanaged resources.
         /// </summary>
         /// <param name="shouldDispose">Indicates whether the resources should be disposed.</param>
-        protected virtual void Dispose(bool shouldDispose) {
-            if(_isDisposed) {
-                return;
+        protected virtual void Dispose(
+            bool shouldDispose
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Dispose)}({shouldDispose}) start...");
+
+            try {
+                if(_isDisposed) {
+                    return;
+                }
+
+                if(shouldDispose) {
+                    // Dispose managed resources here.
+                    if(_notifyIcon != null) {
+                        _notifyIcon.Dispose();
+                        _notifyIcon = null;
+                    }
+
+                    if(_hotkeyMain != null) {
+                        _hotkeyMain.Dispose();
+                        _hotkeyMain = null;
+                    }
+
+                    if(_hotkeyAlt != null) {
+                        _hotkeyAlt.Dispose();
+                        _hotkeyAlt = null;
+                    }
+                }
+
+                // Free unmanaged resources (if any) here.
+                _isDisposed = true;
             }
-
-            if(shouldDispose) {
-                // Dispose managed resources here.
-                if(_notifyIcon != null) {
-                    _notifyIcon.Dispose();
-                    _notifyIcon = null;
-                }
-
-                if(_hotkeyMain != null) {
-                    _hotkeyMain.Dispose();
-                    _hotkeyMain = null;
-                }
-
-                if(_hotkeyAlt != null) {
-                    _hotkeyAlt.Dispose();
-                    _hotkeyAlt = null;
-                }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Dispose)} end.");
             }
-
-            // Free unmanaged resources (if any) here.
-            _isDisposed = true;
         }
         #endregion Methods
 
@@ -998,6 +1168,8 @@ namespace TaskSpace {
         /// Shows the Options dialog.
         /// </summary>
         private void Options() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Options)} start...");
+
             if(_optionsWindow != null) {
                 _optionsWindow.Activate();
             }
@@ -1009,12 +1181,16 @@ namespace TaskSpace {
                 _optionsWindow.Closed += (sender, args) => _optionsWindow = null;
                 _optionsWindow.ShowDialog();
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Options)} end.");
         }
 
         /// <summary>
         /// Shows the About dialog.
         /// </summary>
         private void About() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(About)} start...");
+
             if(_aboutWindow != null) {
                 _aboutWindow.Activate();
             }
@@ -1026,132 +1202,173 @@ namespace TaskSpace {
                 _aboutWindow.Closed += (sender, args) => _aboutWindow = null;
                 _aboutWindow.ShowDialog();
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(About)} end.");
         }
 
         /// <summary>
         /// Quits the app.
         /// </summary>
         private static void Quit() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Quit)} start...");
+
             Application.Current.Shutdown();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(Quit)} end.");
         }
         #endregion Right-Click Menu Functions
 
         #region Event Handlers
         // The main hotkey pressed, e.g. ALT+Space.
-        private void hotkeyMain_HotkeyPressed(object sender, EventArgs e) {
-#if DEBUG
-            Console.WriteLine($"TRACE :: {nameof(hotkeyMain_HotkeyPressed)}...");
-#endif
-            if(!Settings.Default.EnableHotkeyMain) {
-                return;
-            }
+        private void hotkeyMain_HotkeyPressed(
+            object sender
+            , EventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(hotkeyMain_HotkeyPressed)} start...");
 
-            if(Visibility != Visibility.Visible) {
-#if DEBUG
-                Console.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Not visible => Show...");
-#endif
-                _foregroundWindow = SystemWindow.ForegroundWindow;
-                Show();
-                Activate();
-
-                //Keyboard.Focus(textboxSearch); // #cut?
-
-                // [!]
-                LoadData(InitialFocus.NextItem);
-                Opacity = 1;
-            }
-            else {
-#if DEBUG
-                Console.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Visible and hotkey pressed again => Search...");
-#endif
-
-                if(IS_ALT_SPACE_ALT_SPACE_ENABLED) {
-                    Switch();
+            try {
+                //_isLocked = true; // [cut]
+                if(!Settings.Default.EnableHotkeyMain) {
+                    return;
                 }
-                else {
+
+                if(Visibility != Visibility.Visible) {
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Not visible => Show...");
                     _foregroundWindow = SystemWindow.ForegroundWindow;
                     Show();
+
                     Activate();
-                    LoadData(InitialFocus.CurrentItem);
+                    //_mainWindowActiveDateTime = DateTime.UtcNow; // [cut]?
+
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: After _mainWindowActiveDateTime is set to ```{_mainWindowActiveDateTime:u}``` (1212).");
+
+                    //Keyboard.Focus(textboxSearch); // #cut?
+
+                    // [!]
+                    PopulateWindowList(initialFocus: InitialFocus.NextItem);
                     Opacity = 1;
-                    ToggleSearch(true);
                 }
+                else {
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: Visible and hotkey pressed again => Search...");
+
+                    if(IS_ALT_SPACE_ALT_SPACE_ENABLED) {
+                        Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} before 1114...");
+                        Switch();
+                    }
+                    else {
+                        _foregroundWindow = SystemWindow.ForegroundWindow;
+                        Show();
+
+                        Activate();
+                        _mainWindowActiveDateTime = DateTime.UtcNow;
+                        Debug.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: After _mainWindowActiveDateTime is set to ```{_mainWindowActiveDateTime:u}``` (1233).");
+
+                        PopulateWindowList(initialFocus: InitialFocus.CurrentItem);
+                        Opacity = 1;
+                        ToggleSearch(true);
+                    }
+                }
+            }
+            finally {
+                //_isLocked = false;
+                //Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(hotkeyMain_HotkeyPressed)} end. _isLocked=```{_isLocked}```.");
             }
         }
 
-        // The alternate hotkey pressed, e.g. ALT+`.
-        private void hotkeyAlt_HotkeyPressed(object sender, EventArgs e) {
-#if DEBUG
-            Console.WriteLine($"TRACE :: {nameof(hotkeyAlt_HotkeyPressed)}...");
-#endif
-            if(!Settings.Default.EnableHotkeyAlt) {
-                return;
+        // The alternate hotkey pressed, e.g. ALT+` (below tilde).
+        private void hotkeyAlt_HotkeyPressed(
+            object sender
+            , EventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(hotkeyAlt_HotkeyPressed)} start...");
+
+            try {
+                _isLocked = true;
+                if(!Settings.Default.EnableHotkeyAlt) {
+                    return;
+                }
+
+                if(Visibility != Visibility.Visible) {
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: Not visible => Show...");
+
+                    _foregroundWindow = SystemWindow.ForegroundWindow;
+                    Show();
+
+                    Activate();
+                    _mainWindowActiveDateTime = DateTime.UtcNow;
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyMain_HotkeyPressed)} :: After _mainWindowActiveDateTime is set to ```{_mainWindowActiveDateTime:u}``` (1266).");
+
+                    //Keyboard.Focus(textboxSearch); // #cut?
+
+                    // [!]
+                    PopulateWindowList(initialFocus: InitialFocus.NextItem, isSingleAppModeEnabled: true);
+                    Opacity = 1;
+                }
+                else {
+                    Debug.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: #nop?...");
+
+                    // #old
+                    //HideMainWindow();
+                    //_mainWindowActiveDateTime = DateTime.MinValue;
+                    //Debug.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: After _mainWindowActiveDateTime is set to ```{_mainWindowActiveDateTime:u}``` (1280).");
+                }
             }
-
-            if(Visibility != Visibility.Visible) {
-#if DEBUG
-                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: Not visible => Show...");
-#endif
-                _foregroundWindow = SystemWindow.ForegroundWindow;
-                Show();
-                Activate();
-                //Keyboard.Focus(textboxSearch); // #cut?
-
-                // [!]
-                LoadData(InitialFocus.NextItem, isSingleAppModeEnabled: true);
-                Opacity = 1;
-            }
-            else {
-#if DEBUG
-                Console.WriteLine($"DEBUG :: {nameof(hotkeyAlt_HotkeyPressed)} :: #nop?...");
-#endif
-
-                // #old
-                //HideMainWindow();
-                //_mainWindowActiveDateTime = DateTime.MinValue;
+            finally {
+                _isLocked = false;
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(hotkeyAlt_HotkeyPressed)} end. _isLocked=```{_isLocked}```.");
             }
         }
 
-        private void AltTabPressed(object sender, AltTabHookEventArgs e) {
-            if(!Settings.Default.AltTabHook) {
-                // Ignore ALT+Tab presses if the hook is not activated by the user.
-                return;
-            }
+        private void AltTabPressed(
+            object sender
+            , AltTabHookEventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(AltTabPressed)} start...");
 
-            e.Handled = true;
+            try {
+                if(!Settings.Default.AltTabHook) {
+                    // Ignore ALT+Tab presses if the hook is not activated by the user.
+                    return;
+                }
 
-            if(Visibility != Visibility.Visible) {
-                //textboxSearch.IsEnabled = true;
+                e.Handled = true;
 
-                _foregroundWindow = SystemWindow.ForegroundWindow;
+                if(Visibility != Visibility.Visible) {
+                    //textboxSearch.IsEnabled = true;
 
-                ActivateAndFocusMainWindow();
+                    _foregroundWindow = SystemWindow.ForegroundWindow;
 
-                Keyboard.Focus(TextBoxSearch);
-                if(e.ShiftDown) {
-                    // [!]
-                    LoadData(InitialFocus.PreviousItem);
+                    ActivateAndFocusMainWindow();
+
+                    Keyboard.Focus(TextBoxSearch);
+                    if(e.ShiftDown) {
+                        // [!]
+                        PopulateWindowList(initialFocus: InitialFocus.PreviousItem);
+                    }
+                    else {
+                        // [!]
+                        PopulateWindowList(initialFocus: InitialFocus.NextItem);
+                    }
+
+                    //if(Settings.Default.AutoSwitch && !e.CtrlDown) {
+                    //    //_altTabAutoSwitch = true;
+                    //    tb.IsEnabled = false;
+                    //    tb.Text = "Press Alt + S to search";
+                    //}
+
+                    this.Opacity = 1;
                 }
                 else {
-                    // [!]
-                    LoadData(InitialFocus.NextItem);
+                    if(e.ShiftDown) {
+                        PreviousItem();
+                    }
+                    else {
+                        NextItem();
+                    }
                 }
-
-                //if(Settings.Default.AutoSwitch && !e.CtrlDown) {
-                //    //_altTabAutoSwitch = true;
-                //    tb.IsEnabled = false;
-                //    tb.Text = "Press Alt + S to search";
-                //}
-
-                this.Opacity = 1;
             }
-            else {
-                if(e.ShiftDown) {
-                    PreviousItem();
-                }
-                else {
-                    NextItem();
-                }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(AltTabPressed)} end.");
             }
         }
 
@@ -1159,6 +1376,8 @@ namespace TaskSpace {
         // and pressing ALT key might be hack for this.
         // #bug? This might be why the previous foreground window goes to the last Z-order place?
         private void ActivateAndFocusMainWindow() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ActivateAndFocusMainWindow)} start...");
+
             // What happens below looks a bit weird, but for TaskSpace to get focus when using the Alt+Tab hook,
             // it is needed to simulate an Alt keypress which will bring TaskSpace to the foreground.
             // Otherwise TaskSpace will become the foreground window, but the previous window will retain focus, and keep getting the keyboard input.
@@ -1181,69 +1400,106 @@ namespace TaskSpace {
             // Bring the main window to the foreground.
             Show();
             SystemWindow.ForegroundWindow = mainWindow;
+
             Activate();
+            _mainWindowActiveDateTime = DateTime.UtcNow;
+            Debug.WriteLine($"DEBUG :: {nameof(ActivateAndFocusMainWindow)} :: After _mainWindowActiveDateTime is set to ```{_mainWindowActiveDateTime:u}``` (1372).");
 
             // Release the ALT key if it was pressed above. #todo Is this why sometimes the app is immediately switched on ALT+Space?
             if(altKeyPressed) {
                 keyboardKeyAlt.Release();
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ActivateAndFocusMainWindow)} end.");
         }
 
-        private void TextChanged(object sender, TextChangedEventArgs args) {
-            if(!_isSearchEnabled) {
-                return;
+        private void TextChanged(
+            object sender
+            , TextChangedEventArgs args
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(TextChanged)} start...");
+
+            try {
+                if(!_isSearchEnabled) {
+                    return;
+                }
+
+                string query = TextBoxSearch.Text;
+                if(string.IsNullOrEmpty(query)) {
+                    // Back to the starting point (eg now can immediately switch to app 1 etc).
+                    _isSearchEnabled = false;
+                    TextBoxSearch.IsReadOnly = true; // [!] Read-only true so that the caret again doesn't show.
+                }
+
+                // [!] Below code is required both for _isSearchEnabled true and false (i.e. back to no filtering).
+                WindowFilterContext<AppWindowViewModel> windowFilterContext = new() {
+                    Windows = _unfilteredWindowList,
+                    ForegroundWindowProcessTitle = new AppWindow(_foregroundWindow.HWnd).ProcessName
+                };
+
+                List<FilterResult<AppWindowViewModel>> filterResults = new WindowFilterer().Filter(windowFilterContext, query).ToList();
+
+                for(int i0 = 0, i1 = 1; i0 < filterResults.Count; i0++, i1++) {
+                    FilterResult<AppWindowViewModel> filterResult = filterResults[i0];
+                    filterResult.AppWindow.FormattedTitle = GetFormattedTitleFromBestResult(filterResult.WindowTitleMatchResults);
+                    filterResult.AppWindow.FormattedProcessTitle = GetFormattedTitleFromBestResult(filterResult.ProcessTitleMatchResults);
+                    filterResult.AppWindow.OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
+                }
+
+                _searchFilteredWindowList = new ObservableCollection<AppWindowViewModel>(filterResults.Select(r => r.AppWindow));
+                ListBoxPrograms.DataContext = _searchFilteredWindowList;
+
+                if(0 < ListBoxPrograms.Items.Count) {
+                    // If filtering, select the first best match, otherwise select the current app (instead of trying to maybe backspace to 2nd next app).
+                    ListBoxPrograms.SelectedItem = ListBoxPrograms.Items[0];
+                }
             }
-
-            string query = TextBoxSearch.Text;
-            if(string.IsNullOrEmpty(query)) {
-                // Back to the starting point (eg now can immediately switch to app 1 etc).
-                _isSearchEnabled = false;
-                TextBoxSearch.IsReadOnly = true; // [!] Read-only true so that the caret again doesn't show.
-            }
-
-            // [!] Below code is required both for _isSearchEnabled true and false (i.e. back to no filtering).
-            WindowFilterContext<AppWindowViewModel> windowFilterContext = new() {
-                Windows = _unfilteredWindowList,
-                ForegroundWindowProcessTitle = new AppWindow(_foregroundWindow.HWnd).ProcessName
-            };
-
-            List<FilterResult<AppWindowViewModel>> filterResults = new WindowFilterer().Filter(windowFilterContext, query).ToList();
-
-            for(int i0 = 0, i1 = 1; i0 < filterResults.Count; i0++, i1++) {
-                FilterResult<AppWindowViewModel> filterResult = filterResults[i0];
-                filterResult.AppWindow.FormattedTitle = GetFormattedTitleFromBestResult(filterResult.WindowTitleMatchResults);
-                filterResult.AppWindow.FormattedProcessTitle = GetFormattedTitleFromBestResult(filterResult.ProcessTitleMatchResults);
-                filterResult.AppWindow.OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
-            }
-
-            _searchFilteredWindowList = new ObservableCollection<AppWindowViewModel>(filterResults.Select(r => r.AppWindow));
-            ListBoxPrograms.DataContext = _searchFilteredWindowList;
-
-            if(0 < ListBoxPrograms.Items.Count) {
-                // If filtering, select the first best match, otherwise select the current app (instead of trying to maybe backspace to 2nd next app).
-                ListBoxPrograms.SelectedItem = ListBoxPrograms.Items[0];
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(TextChanged)} end.");
             }
         }
 
-        private static string GetFormattedTitleFromBestResult(IList<MatchResult> matchResults) {
-            MatchResult bestResult = matchResults.FirstOrDefault(r => r.Matched) ?? matchResults.First();
-            return new XamlHighlighter().Highlight(bestResult.StringParts);
+        private static string GetFormattedTitleFromBestResult(
+            IList<MatchResult> matchResults
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetFormattedTitleFromBestResult)} start...");
+
+            try {
+                MatchResult bestResult = matchResults.FirstOrDefault(r => r.Matched) ?? matchResults.First();
+                return new XamlHighlighter().Highlight(bestResult.StringParts);
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(GetFormattedTitleFromBestResult)} end.");
+            }
         }
 
         private void SwitchToWindow(
             object sender
             , ExecutedRoutedEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SwitchToWindow)} start...");
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} before 1303...");
             Switch();
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SwitchToWindow)} end.");
         }
 
-        private void ListBoxItem_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
+        private void ListBoxItem_MouseLeftButtonUp(
+            object sender
+            , MouseButtonEventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ListBoxItem_MouseLeftButtonUp)} start...");
+
             if(!Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ToggleSearch)} before 1315...");
                 Switch();
             }
 
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ListBoxItem_MouseLeftButtonUp)} end.");
         }
 
         /// <summary>
@@ -1255,29 +1511,36 @@ namespace TaskSpace {
             object sender
             , ExecutedRoutedEventArgs e
         ) {
-            // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
-            if(this.Visibility != Visibility.Visible) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LaunchWindowAsync)} start...");
+
+            try {
+                // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
+                if(this.Visibility != Visibility.Visible) {
+                    e.Handled = true;
+                    return;
+                }
+
+                // #TODO Actually, should be populated with Settings data even if there is no active mapped app.
+                List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
+                if(hotkeyFilteredWindowList == null
+                    || hotkeyFilteredWindowList.Count == 0
+                    || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
+                ) {
+                    e.Handled = true;
+                    return;
+                }
+
+                // Spawn new process.
+                // #BUG Should fall-back on the first app in the settings, NOT first active mapped app.
+                Process.Start(hotkeyFilteredWindowList.First().AppFilePath);
+
+                // #TODO Preferentially launch current row if applicable?
+
                 e.Handled = true;
-                return;
             }
-
-            // #TODO Actually, should be populated with Settings data even if there is no active mapped app.
-            List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
-            if(hotkeyFilteredWindowList == null
-                || hotkeyFilteredWindowList.Count == 0
-                || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
-            ) {
-                e.Handled = true;
-                return;
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LaunchWindowAsync)} end.");
             }
-
-            // Spawn new process.
-            // #BUG Should fall-back on the first app in the settings, NOT first active mapped app.
-            Process.Start(hotkeyFilteredWindowList.First().AppFilePath);
-
-            // #TODO Preferentially launch current row if applicable?
-
-            e.Handled = true;
         }
 
         /// <summary>
@@ -1289,40 +1552,47 @@ namespace TaskSpace {
             object sender
             , ExecutedRoutedEventArgs e
         ) {
-            // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
-            if(this.Visibility != Visibility.Visible) {
-                e.Handled = true;
-                return;
-            }
-
-            // #TODO Actually, should be populated with Settings data even if there is no active mapped app.
-            List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
-            if(hotkeyFilteredWindowList == null
-                || hotkeyFilteredWindowList.Count == 0
-                || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
-            ) {
-                e.Handled = true;
-                return;
-            }
-
-            ProcessStartInfo processInfo = new() {
-                FileName = hotkeyFilteredWindowList.First().AppFilePath, // Path to the application.
-                UseShellExecute = true, // Use shell execute to enable running as admin.
-                Verb = "runas" // Specifies to run the process as an administrator.
-            };
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LaunchAdminWindowAsync)} start...");
 
             try {
-                // #BUG Should fall-back on the first app in the settings, NOT first active mapped app.
-                // Spawn new admin process.
-                Process.Start(processInfo);
+                // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
+                if(this.Visibility != Visibility.Visible) {
+                    e.Handled = true;
+                    return;
+                }
 
-                // #TODO Preferentially launch current row if applicable?
-            }
-            catch(System.ComponentModel.Win32Exception) {
-                // This exception will occur if the user cancels the UAC prompt.
-            }
+                // #TODO Actually, should be populated with Settings data even if there is no active mapped app.
+                List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
+                if(hotkeyFilteredWindowList == null
+                    || hotkeyFilteredWindowList.Count == 0
+                    || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
+                ) {
+                    e.Handled = true;
+                    return;
+                }
 
-            e.Handled = true;
+                ProcessStartInfo processInfo = new() {
+                    FileName = hotkeyFilteredWindowList.First().AppFilePath, // Path to the application.
+                    UseShellExecute = true, // Use shell execute to enable running as admin.
+                    Verb = "runas" // Specifies to run the process as an administrator.
+                };
+
+                try {
+                    // #BUG Should fall-back on the first app in the settings, NOT first active mapped app.
+                    // Spawn new admin process.
+                    Process.Start(processInfo);
+
+                    // #TODO Preferentially launch current row if applicable?
+                }
+                catch(System.ComponentModel.Win32Exception) {
+                    // This exception will occur if the user cancels the UAC prompt.
+                }
+
+                e.Handled = true;
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(LaunchAdminWindowAsync)} end.");
+            }
         }
 
         /// <summary>
@@ -1336,37 +1606,44 @@ namespace TaskSpace {
             object sender
             , ExecutedRoutedEventArgs e
         ) {
-            // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
-            if(this.Visibility != Visibility.Visible) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CloseWindowAsync)} start...");
+
+            try {
+                // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
+                if(this.Visibility != Visibility.Visible) {
+                    e.Handled = true;
+                    return;
+                }
+
+                if(ListBoxPrograms.Items.Count <= 0) {
+                    // All windows are already closed, so hide the main TaskSpace window.
+                    HideMainWindow();
+                    e.Handled = true;
+                    return;
+                }
+
+                List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
+                if(hotkeyFilteredWindowList == null
+                    || hotkeyFilteredWindowList.Count == 0
+                    || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
+                ) {
+                    e.Handled = true;
+                    return;
+                }
+
+                await CloseWindowAsync(hotkeyFilteredWindowList.First());
+                //if(hotkeyFilteredWindowList.Count == 1) {
+                //    await CloseWindowAsync(hotkeyFilteredWindowList.First());
+                //}
+                //else {
+                //    // #TODO# If currently selected row matches this app, close it preferentially. #OR Gradual close (first filter).
+                //}
+
                 e.Handled = true;
-                return;
             }
-
-            if(ListBoxPrograms.Items.Count <= 0) {
-                // All windows are already closed, so hide the main TaskSpace window.
-                HideMainWindow();
-                e.Handled = true;
-                return;
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CloseWindowAsync)} end.");
             }
-
-            List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
-            if(hotkeyFilteredWindowList == null
-                || hotkeyFilteredWindowList.Count == 0
-                || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
-            ) {
-                e.Handled = true;
-                return;
-            }
-
-            await CloseWindowAsync(hotkeyFilteredWindowList.First());
-            //if(hotkeyFilteredWindowList.Count == 1) {
-            //    await CloseWindowAsync(hotkeyFilteredWindowList.First());
-            //}
-            //else {
-            //    // #TODO### If currently selected row matches this app, close it preferentially.
-            //}
-
-            e.Handled = true;
         }
 
         /// <summary>
@@ -1380,149 +1657,179 @@ namespace TaskSpace {
             object sender
             , ExecutedRoutedEventArgs e
         ) {
-            // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
-            if(this.Visibility != Visibility.Visible) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(KillWindowAsync)} start...");
+
+            try {
+                // Check if the main window is visible before handling the hotkey (i.e. user might have cancelled via Esc).
+                if(this.Visibility != Visibility.Visible) {
+                    e.Handled = true;
+                    return;
+                }
+
+                if(ListBoxPrograms.Items.Count <= 0) {
+                    // All windows are already closed, so hide the main TaskSpace window.
+                    HideMainWindow();
+                    e.Handled = true;
+                    return;
+                }
+
+                List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
+                if(hotkeyFilteredWindowList == null
+                    || hotkeyFilteredWindowList.Count == 0
+                    || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
+                ) {
+                    e.Handled = true;
+                    return;
+                }
+
+                await CloseWindowAsync(hotkeyFilteredWindowList.First());
+                //if(hotkeyFilteredWindowList.Count == 1) {
+                //    await CloseWindowAsync(hotkeyFilteredWindowList.First());
+                //}
+                //else {
+                //    // #TODO# If currently selected row matches this app, close it preferentially. #OR Gradual close (first filter).
+                //}
+
                 e.Handled = true;
-                return;
             }
-
-            if(ListBoxPrograms.Items.Count <= 0) {
-                // All windows are already closed, so hide the main TaskSpace window.
-                HideMainWindow();
-                e.Handled = true;
-                return;
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(KillWindowAsync)} end.");
             }
-
-            List<AppWindowViewModel> hotkeyFilteredWindowList = GetSwitchableWindows(_lastKeyPressed, out _);
-            if(hotkeyFilteredWindowList == null
-                || hotkeyFilteredWindowList.Count == 0
-                || string.IsNullOrWhiteSpace(hotkeyFilteredWindowList.First().AppFilePath)
-            ) {
-                e.Handled = true;
-                return;
-            }
-
-            await CloseWindowAsync(hotkeyFilteredWindowList.First());
-            //if(hotkeyFilteredWindowList.Count == 1) {
-            //    await CloseWindowAsync(hotkeyFilteredWindowList.First());
-            //}
-            //else {
-            //    // #TODO### If currently selected row matches this app, close it preferentially.
-            //}
-
-            e.Handled = true;
         }
 
         private async Task CloseWindowAsync(
             AppWindowViewModel appWindowViewModel
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CloseWindowAsync)} start...");
+
             bool isClosed = await _windowCloser.TryCloseAsync(appWindowViewModel);
             if(isClosed) {
                 RemoveClosedWindow(appWindowViewModel);
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(CloseWindowAsync)} end.");
         }
 
         private async Task KillWindowAsync(
             AppWindowViewModel appWindowViewModel
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(KillWindowAsync)} start...");
+
             bool isClosed = await _windowCloser.TryKillAsync(appWindowViewModel);
             if(isClosed) {
                 RemoveClosedWindow(appWindowViewModel);
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(KillWindowAsync)} end.");
         }
 
-        private void RemoveClosedWindow(AppWindowViewModel appWindowViewModel) {
-            // Track the current selected index.
-            int currentSelectedIndex = ListBoxPrograms.SelectedIndex;
+        private void RemoveClosedWindow(
+            AppWindowViewModel appWindowViewModel
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(RemoveClosedWindow)} start...");
 
-            // Get the currently selected window (to check if it was the one being removed).
-            AppWindowViewModel currentlySelectedWindow = ListBoxPrograms.SelectedItem as AppWindowViewModel;
+            try {
+                // Track the current selected index.
+                int currentSelectedIndex = ListBoxPrograms.SelectedIndex;
 
-            // #note The _hotkeyFilteredWindowList will likely always be null due to logic where it's set to null in some cases.
-            // Use _hotkeyFilteredWindowListBackup if _hotkeyFilteredWindowList is null to work with a valid list.
-            List<AppWindowViewModel> hotkeyFilteredWindowList = _hotkeyFilteredWindowList ?? _hotkeyFilteredWindowListBackup;
-            bool isHotkeyFilteredWindowMode = hotkeyFilteredWindowList != null;
+                // Get the currently selected window (to check if it was the one being removed).
+                AppWindowViewModel currentlySelectedWindow = ListBoxPrograms.SelectedItem as AppWindowViewModel;
 
-            List<AppWindowViewModel> windowList = isHotkeyFilteredWindowMode
-                ? hotkeyFilteredWindowList
-                : _unfilteredWindowList;
+                // #note The _hotkeyFilteredWindowList will likely always be null due to logic where it's set to null in some cases.
+                // Use _hotkeyFilteredWindowListBackup if _hotkeyFilteredWindowList is null to work with a valid list.
+                List<AppWindowViewModel> hotkeyFilteredWindowList = _hotkeyFilteredWindowList ?? _hotkeyFilteredWindowListBackup;
+                bool isHotkeyFilteredWindowMode = hotkeyFilteredWindowList != null;
 
-            int windowIndex = windowList.IndexOf(appWindowViewModel);
-            if(0 <= windowIndex) {
-                // Remove the window from the window list (either hotkeyFilteredWindowList or _unfilteredWindowList).
-                windowList.Remove(appWindowViewModel);
+                List<AppWindowViewModel> windowList = isHotkeyFilteredWindowMode
+                    ? hotkeyFilteredWindowList
+                    : _unfilteredWindowList;
 
-                if(isHotkeyFilteredWindowMode) {
-                    // If in filter mode, also remove the window from the unfiltered window list.
-                    _unfilteredWindowList.Remove(appWindowViewModel);
-                }
-            }
+                int windowIndex = windowList.IndexOf(appWindowViewModel);
+                if(0 <= windowIndex) {
+                    // Remove the window from the window list (either hotkeyFilteredWindowList or _unfilteredWindowList).
+                    windowList.Remove(appWindowViewModel);
 
-            if(windowList.Count == 0) {
-                // All windows are already closed, so hide the main TaskSpace window.
-                HideMainWindow();
-                return;
-            }
-
-            if(isHotkeyFilteredWindowMode) {
-                // Backup the first item LetterBound and LetterMapped (should both be populated).
-                string firstItemLetterBound = windowList.First().LetterBound;
-                string firstItemLetterMapped = windowList.First().LetterMapped;
-
-                // Re-initialize digit/letter mappings (with proper highlighting).
-                for(int i0 = 0, i1 = 1; i0 < windowList.Count; i0++, i1++) {
-                    windowList[i0].OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
-
-                    if(i0 == 0) {
-                        // Reassign the hotkey letter only to the first window in the list.
-                        windowList[i0].LetterBound = firstItemLetterBound;
-                        windowList[i0].LetterMapped = firstItemLetterMapped;
+                    if(isHotkeyFilteredWindowMode) {
+                        // If in filter mode, also remove the window from the unfiltered window list.
+                        _unfilteredWindowList.Remove(appWindowViewModel);
                     }
                 }
-            }
-            else {
-                for(int i0 = 0, i1 = 1; i0 < windowList.Count; i0++, i1++) {
-                    // In unfiltered mode, reassign only the ordinal index, not the letter bindings (with proper highlighting).
-                    windowList[i0].OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
+
+                if(windowList.Count == 0) {
+                    // All windows are already closed, so hide the main TaskSpace window.
+                    HideMainWindow();
+                    return;
                 }
-            }
 
-            // Reinitialize the data context of the ListBox to ensure the UI is updated.
-            ListBoxPrograms.DataContext = null; // Rebind the data context to reflect changes.
-            ListBoxPrograms.DataContext = windowList;
+                if(isHotkeyFilteredWindowMode) {
+                    // Backup the first item LetterBound and LetterMapped (should both be populated).
+                    string firstItemLetterBound = windowList.First().LetterBound;
+                    string firstItemLetterMapped = windowList.First().LetterMapped;
 
-            // Handle selection.
-            if(ListBoxPrograms.Items.Count <= 0) {
-                // If the list is empty, clear the selection.
-                ListBoxPrograms.SelectedIndex = -1;
-            }
-            else if(currentlySelectedWindow == appWindowViewModel) {
-                // If the closed window was the selected one, select the next available one.
-                if(currentSelectedIndex < ListBoxPrograms.Items.Count) {
-                    ListBoxPrograms.SelectedIndex = currentSelectedIndex;
+                    // Re-initialize digit/letter mappings (with proper highlighting).
+                    for(int i0 = 0, i1 = 1; i0 < windowList.Count; i0++, i1++) {
+                        windowList[i0].OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
+
+                        if(i0 == 0) {
+                            // Reassign the hotkey letter only to the first window in the list.
+                            windowList[i0].LetterBound = firstItemLetterBound;
+                            windowList[i0].LetterMapped = firstItemLetterMapped;
+                        }
+                    }
                 }
                 else {
-                    ListBoxPrograms.SelectedIndex = ListBoxPrograms.Items.Count - 1;
+                    for(int i0 = 0, i1 = 1; i0 < windowList.Count; i0++, i1++) {
+                        // In unfiltered mode, reassign only the ordinal index, not the letter bindings (with proper highlighting).
+                        windowList[i0].OrdinalMapped1 = new XamlHighlighter().Highlight(new[] { new StringPart(i1.Get1BasedIndexString()) });
+                    }
                 }
-            }
-            else {
-                // If the closed window wasn't the selected one, preserve the current selection.
-                ListBoxPrograms.SelectedItem = currentlySelectedWindow;
-            }
 
-            // Bring the selected item into view.
-            ListBoxPrograms.ScrollIntoView(ListBoxPrograms.SelectedItem);
+                // Reinitialize the data context of the ListBox to ensure the UI is updated.
+                ListBoxPrograms.DataContext = null; // Rebind the data context to reflect changes.
+                ListBoxPrograms.DataContext = windowList;
+
+                // Handle selection.
+                if(ListBoxPrograms.Items.Count <= 0) {
+                    // If the list is empty, clear the selection.
+                    ListBoxPrograms.SelectedIndex = -1;
+                }
+                else if(currentlySelectedWindow == appWindowViewModel) {
+                    // If the closed window was the selected one, select the next available one.
+                    if(currentSelectedIndex < ListBoxPrograms.Items.Count) {
+                        ListBoxPrograms.SelectedIndex = currentSelectedIndex;
+                    }
+                    else {
+                        ListBoxPrograms.SelectedIndex = ListBoxPrograms.Items.Count - 1;
+                    }
+                }
+                else {
+                    // If the closed window wasn't the selected one, preserve the current selection.
+                    ListBoxPrograms.SelectedItem = currentlySelectedWindow;
+                }
+
+                // Bring the selected item into view.
+                ListBoxPrograms.ScrollIntoView(ListBoxPrograms.SelectedItem);
+            }
+            finally {
+                Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(RemoveClosedWindow)} end.");
+            }
         }
 
         private void ScrollListUp(
             object sender
             , ExecutedRoutedEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListUp)} start...");
+
             PreviousItem();
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListUp)} end.");
         }
 
         private void PreviousItem() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(PreviousItem)} start...");
+
             if(0 < ListBoxPrograms.Items.Count) {
                 if(ListBoxPrograms.SelectedIndex != 0) {
                     --ListBoxPrograms.SelectedIndex;
@@ -1534,17 +1841,25 @@ namespace TaskSpace {
 
                 ScrollSelectedItemIntoView();
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(PreviousItem)} end...");
         }
 
         private void ScrollListDown(
             object sender
             , ExecutedRoutedEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListDown)} start...");
+
             NextItem();
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListDown)} end.");
         }
 
         private void NextItem() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(NextItem)} start...");
+
             if(0 < ListBoxPrograms.Items.Count) {
                 if(ListBoxPrograms.SelectedIndex != ListBoxPrograms.Items.Count - 1) {
                     ListBoxPrograms.SelectedIndex++;
@@ -1556,58 +1871,106 @@ namespace TaskSpace {
 
                 ScrollSelectedItemIntoView();
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(NextItem)} end.");
         }
 
         private void ScrollSelectedItemIntoView() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollSelectedItemIntoView)} start...");
+
             object selectedItem = ListBoxPrograms.SelectedItem;
             if(selectedItem != null) {
                 ListBoxPrograms.ScrollIntoView(selectedItem);
             }
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollSelectedItemIntoView)} end.");
         }
 
         private void ScrollListHome(
             object sender
             , ExecutedRoutedEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListHome)} start...");
+
             ListBoxPrograms.SelectedIndex = 0;
             ScrollSelectedItemIntoView();
 
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListHome)} end.");
         }
 
         private void ScrollListEnd(
             object sender
             , ExecutedRoutedEventArgs e
         ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListEnd)} start...");
+
             ListBoxPrograms.SelectedIndex = ListBoxPrograms.Items.Count - 1;
             ScrollSelectedItemIntoView();
 
             e.Handled = true;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(ScrollListEnd)} end.");
         }
 
-        private void MainWindow_Deactivated(object sender, EventArgs e) {
+        private void MainWindow_Deactivated(
+            object sender
+            , EventArgs e
+        ) {
+            // #BUG Why is this activating right away?
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_Deactivated)} start...");
+
             HideMainWindow();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_Deactivated)} end.");
         }
 
-        private void MainWindow_OnLoaded(object sender, RoutedEventArgs e) {
+        private void MainWindow_OnLoaded(
+            object sender
+            , RoutedEventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_OnLoaded)} start...");
+
             DisableSystemMenu();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(MainWindow_OnLoaded)} end.");
         }
 
         private void DisableSystemMenu() {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(DisableSystemMenu)} start...");
+
             IntPtr windowHandle = new WindowInteropHelper(this).Handle;
             SystemWindow systemWindow = new(windowHandle);
             systemWindow.Style &= ~WindowStyleFlags.SYSMENU;
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(DisableSystemMenu)} end.");
         }
 
-        private void SearchIcon_OnPreviewMouseDown(object sender, MouseButtonEventArgs e) {
+        private void SearchIcon_OnPreviewMouseDown(
+            object sender
+            , MouseButtonEventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SearchIcon_OnPreviewMouseDown)} start...");
+
             // Toggle.
             ToggleSearch();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(SearchIcon_OnPreviewMouseDown)} end.");
         }
 
-        private void OnClose(object sender, System.ComponentModel.CancelEventArgs e) {
+        private void OnClose(
+            object sender
+            , System.ComponentModel.CancelEventArgs e
+        ) {
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(OnClose)} start...");
+
             // Hide the main window (this is NOT shutdown or exit).
             e.Cancel = true;
             HideMainWindow();
+
+            Debug.WriteLine($"TRACE :: {nameof(MainWindow)}.{nameof(OnClose)} end.");
         }
         #endregion Event Handlers
     }

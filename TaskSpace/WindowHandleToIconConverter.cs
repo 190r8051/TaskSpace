@@ -23,25 +23,25 @@ namespace TaskSpace {
             , CultureInfo culture
         ) {
             IntPtr handle = (IntPtr)value;
-            string key = "IconImage-" + handle;
-            string shortCacheKey = key + "-shortCache";
-            string longCacheKey = key + "-longCache";
-            BitmapImage iconImage = MemoryCache.Default.Get(shortCacheKey) as BitmapImage;
-            if(iconImage == null) {
-                AppWindow window = new AppWindow(handle);
+            string key = "IconImage-" + handle; // #todo #const
+            string shortCacheKey = key + "-shortCache"; // #todo #const
+            string longCacheKey = key + "-longCache"; // #todo #const
+            BitmapImage bitmapImage = MemoryCache.Default.Get(shortCacheKey) as BitmapImage;
+            if(bitmapImage == null) {
+                AppWindow appWindow = new AppWindow(handle);
                 Icon icon = ShouldUseSmallTaskbarIcons()
-                    ? window.SmallWindowIcon
-                    : window.LargeWindowIcon;
-                iconImage = _iconToBitmapConverter.Convert(icon) ?? new BitmapImage();
-                MemoryCache.Default.Set(shortCacheKey, iconImage, DateTimeOffset.Now.AddSeconds(5));
-                MemoryCache.Default.Set(longCacheKey, iconImage, DateTimeOffset.Now.AddMinutes(120));
+                    ? appWindow.SmallWindowIcon
+                    : appWindow.LargeWindowIcon;
+                bitmapImage = _iconToBitmapConverter.Convert(icon) ?? new BitmapImage();
+                MemoryCache.Default.Set(shortCacheKey, bitmapImage, DateTimeOffset.Now.AddSeconds(5));
+                MemoryCache.Default.Set(longCacheKey, bitmapImage, DateTimeOffset.Now.AddMinutes(120));
             }
 
-            return iconImage;
+            return bitmapImage;
         }
 
         private static bool ShouldUseSmallTaskbarIcons() {
-            string cacheKey = "SmallTaskbarIcons";
+            string cacheKey = "SmallTaskbarIcons"; // #todo #const
 
             bool? cachedSetting = MemoryCache.Default.Get(cacheKey) as bool?;
             if(cachedSetting != null) {

@@ -23,7 +23,7 @@ namespace ManagedWinapi {
         /// </summary>
         /// <param name="small">Whether to get the small icon instead of the large one</param>
         public static Icon GetFileIcon(bool small) {
-            return GetExtensionIcon("", small);
+            return GetExtensionIcon(string.Empty, small);
         }
 
         /// <summary>
@@ -86,6 +86,7 @@ namespace ManagedWinapi {
             if(high == 0 && low == 0xFFFFFFFF && error != 0) {
                 throw new Win32Exception(error);
             }
+
             return ((ulong)high << 32) + low;
         }
 
